@@ -54,7 +54,7 @@ class AdminRoomsPage extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
-              childAspectRatio: 0.92,
+              mainAxisExtent: 190,
             ),
             itemBuilder: (context, index) {
               final room = rooms[index];
@@ -177,48 +177,23 @@ class _RoomCard extends StatelessWidget {
             children: [
               StatusPill(label: status.label, backgroundColor: status.background, textColor: status.foreground),
               const Spacer(),
-              PopupMenuButton<_RoomAction>(
-                tooltip: 'Tùy chọn phòng',
-                color: Colors.white,
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-                icon: const Icon(Icons.more_horiz_rounded, color: AppColors.sanctuaryDark),
-                onSelected: (action) {
-                  switch (action) {
-                    case _RoomAction.edit:
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => AdminAddRoomPage(room: room)),
-                      );
-                      break;
-                    case _RoomAction.delete:
-                      _confirmDeleteRoom(context, room);
-                      break;
-                  }
+              Builder(
+                builder: (buttonContext) {
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => _showRoomActions(buttonContext, context, room),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.46),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.more_horiz_rounded, color: AppColors.sanctuaryDark, size: 22),
+                    ),
+                  );
                 },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: _RoomAction.edit,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.edit_outlined, color: AppColors.sanctuaryDark, size: 19),
-                        const SizedBox(width: 10),
-                        Text('Cập nhật', style: AppStyles.body(context, fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: _RoomAction.delete,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.delete_outline_rounded, color: AppColors.badgeMaintenanceText, size: 19),
-                        const SizedBox(width: 10),
-                        Text('Xóa phòng', style: AppStyles.body(context, color: AppColors.badgeMaintenanceText, fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -314,6 +289,61 @@ class _RoomCard extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(success ? 'Đã xóa phòng ${room.roomNumber}.' : 'Xóa phòng thất bại. Vui lòng thử lại.')),
     );
+  }
+
+  Future<void> _showRoomActions(BuildContext anchorContext, BuildContext pageContext, RoomModel room) async {
+    final button = anchorContext.findRenderObject() as RenderBox;
+    final overlay = Navigator.of(pageContext).overlay!.context.findRenderObject() as RenderBox;
+    final buttonRect = Rect.fromPoints(
+      button.localToGlobal(Offset.zero, ancestor: overlay),
+      button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+    );
+
+    final action = await showMenu<_RoomAction>(
+      context: pageContext,
+      color: Colors.white,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      position: RelativeRect.fromRect(buttonRect, Offset.zero & overlay.size),
+      items: [
+        PopupMenuItem(
+          value: _RoomAction.edit,
+          child: Row(
+            children: [
+              const Icon(Icons.edit_outlined, color: AppColors.sanctuaryDark, size: 19),
+              const SizedBox(width: 10),
+              Text('Cập nhật', style: AppStyles.body(pageContext, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: _RoomAction.delete,
+          child: Row(
+            children: [
+              const Icon(Icons.delete_outline_rounded, color: AppColors.badgeMaintenanceText, size: 19),
+              const SizedBox(width: 10),
+              Text(
+                'Xóa phòng',
+                style: AppStyles.body(pageContext, color: AppColors.badgeMaintenanceText, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (action == null || !pageContext.mounted) return;
+
+    switch (action) {
+      case _RoomAction.edit:
+        Navigator.of(pageContext).push(
+          MaterialPageRoute(builder: (_) => AdminAddRoomPage(room: room)),
+        );
+        break;
+      case _RoomAction.delete:
+        _confirmDeleteRoom(pageContext, room);
+        break;
+    }
   }
 }
 
