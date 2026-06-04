@@ -2,10 +2,13 @@ class ContractModel {
   final int? id;
   final int roomId;
   final int tenantId;
-  final String startDate; // Định dạng YYYY-MM-DD
-  final String endDate;   // Định dạng YYYY-MM-DD
+  final String startDate;
+  final String endDate;
   final double deposit;
-  final String status;    // active, expired, terminated
+  final double initialElectricity; // Mới thêm theo image_3138bc.png
+  final double initialWater;       // Mới thêm theo image_3138bc.png
+  final String contractPdfPath;    // Mới thêm theo image_31405c.png
+  final String status;
 
   ContractModel({
     this.id,
@@ -14,10 +17,12 @@ class ContractModel {
     required this.startDate,
     required this.endDate,
     required this.deposit,
-    this.status = 'active',
+    required this.initialElectricity,
+    required this.initialWater,
+    required this.contractPdfPath,
+    required this.status,
   });
 
-  // Khớp chính xác với các cột trong bảng contracts của SQLite
   factory ContractModel.fromMap(Map<String, dynamic> map) {
     return ContractModel(
       id: map['id'] as int?,
@@ -25,7 +30,10 @@ class ContractModel {
       tenantId: map['tenant_id'] as int,
       startDate: map['start_date'] as String,
       endDate: map['end_date'] as String,
-      deposit: (map['deposit'] as num).toDouble(), // Ép kiểu an toàn từ SQLite REAL
+      deposit: (map['deposit'] as num).toDouble(),
+      initialElectricity: (map['initial_electricity'] as num? ?? 0.0).toDouble(),
+      initialWater: (map['initial_water'] as num? ?? 0.0).toDouble(),
+      contractPdfPath: map['contract_pdf_path'] as String? ?? '',
       status: map['status'] as String,
     );
   }
@@ -38,6 +46,9 @@ class ContractModel {
       'start_date': startDate,
       'end_date': endDate,
       'deposit': deposit,
+      'initial_electricity': initialElectricity,
+      'initial_water': initialWater,
+      'contract_pdf_path': contractPdfPath,
       'status': status,
     };
   }
