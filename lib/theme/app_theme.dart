@@ -15,6 +15,7 @@ const kOnSurface              = Color(0xFF2C3437);
 const kOnSurfaceVariant       = Color(0xFF596064);
 const kOutline                = Color(0xFF747C80);
 const kOutlineVariant         = Color(0xFFACB3B7);
+const kSurfaceContainerLow    = Color(0xFFF0F4F7);
 const kSurfaceContainerHigh   = Color(0xFFE3E9ED);
 const kSecondaryContainer     = Color(0xFFD3E5F5);
 const kTertiaryContainer      = Color(0xFFCBCEFE);
