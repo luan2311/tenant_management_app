@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'customer/Home_page_screen.dart';
 import 'customer/Explore_screen.dart';
+import 'customer/Notification_screen.dart';
 
 /// Shell quản lý Bottom Navigation cho phân hệ Khách thuê.
 /// Tab 0: Trang chủ, Tab 1: Khám phá, Tab 2: Phòng của tôi, Tab 3: Thông báo.
@@ -33,11 +34,7 @@ class _TenantShellState extends State<TenantShell> {
             Icons.meeting_room_rounded,
             'Sprint 3 — Gia Khánh',
           ),
-          const _PlaceholderTab(
-            'Thông báo',
-            Icons.notifications_rounded,
-            'Sprint 4 — Tuấn Huy',
-          ),
+          const NotificationScreen(),
         ],
       ),
       bottomNavigationBar: LumiereBottomNavBar.tenant(

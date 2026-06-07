@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../mock/room_mock_data.dart';
+import 'Rental_request_screen.dart';
 
 // ─── RoomDetailScreen — Chi tiết phòng ───────────────────────────────────────
 // HUY.3.3 · Sprint 3  (filename giữ nguyên để tránh thay đổi import)
@@ -73,7 +74,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
           // ── Bottom action bar ──────────────────────────────────────────
           Positioned(
             bottom: 0, left: 0, right: 0,
-            child: _BottomActionBar(isAvailable: _isAvailable),
+            child: _BottomActionBar(isAvailable: _isAvailable, room: widget.room),
           ),
         ],
       ),
@@ -563,7 +564,8 @@ class _AmenityTile extends StatelessWidget {
 // ─── Bottom Action Bar ────────────────────────────────────────────────────────
 class _BottomActionBar extends StatelessWidget {
   final bool isAvailable;
-  const _BottomActionBar({required this.isAvailable});
+  final RoomData room;
+  const _BottomActionBar({required this.isAvailable, required this.room});
 
   @override
   Widget build(BuildContext context) {
@@ -606,11 +608,11 @@ class _BottomActionBar extends StatelessWidget {
                     enabled: isAvailable,
                     onTap: isAvailable
                         ? () {
-                            // TODO Sprint 4: Navigator.push → RentRequestScreen
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Màn hình yêu cầu thuê sẽ có ở Sprint 4')),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RentalRequestScreen(room: room),
+                              ),
                             );
                           }
                         : () {},
