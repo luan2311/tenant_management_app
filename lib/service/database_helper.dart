@@ -400,6 +400,18 @@ class DatabaseHelper {
     );
   }
 
+  Future<bool> verifyUserPassword(int userId, String password) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'users',
+      columns: ['id'],
+      where: 'id = ? AND password = ?',
+      whereArgs: [userId, password],
+      limit: 1,
+    );
+    return maps.isNotEmpty;
+  }
+
   // --- Facilities CRUD ---
   Future<List<FacilityModel>> getAllFacilities() async {
     final db = await instance.database;
@@ -546,6 +558,19 @@ class DatabaseHelper {
     return maps.map((m) => ContractModel.fromMap(m)).toList();
   }
 
+  Future<ContractModel?> getActiveContractByRoom(int roomId) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'contracts',
+      where: 'room_id = ? AND status = ?',
+      whereArgs: [roomId, 'active'],
+      orderBy: 'start_date DESC',
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return ContractModel.fromMap(maps.first);
+  }
+
   Future<int> insertContract(ContractModel contract) async {
     final db = await instance.database;
     // Task KHANH.2.3: Khi hợp đồng được tạo, lập tức chuyển trạng thái phòng tương ứng thành status = 'rented'
@@ -556,6 +581,32 @@ class DatabaseHelper {
       whereArgs: [contract.roomId],
     );
     return await db.insert('contracts', contract.toMap());
+  }
+
+  Future<int> createContractWithRoomSync(ContractModel contract) async {
+    final db = await instance.database;
+    return await db.transaction((txn) async {
+      await txn.update(
+        'rooms',
+        {'status': 'rented'},
+        where: 'id = ?',
+        whereArgs: [contract.roomId],
+      );
+      return await txn.insert('contracts', contract.toMap());
+    });
+  }
+
+  Future<int> updateContract(ContractModel contract) async {
+    if (contract.id == null) return 0;
+
+    final db = await instance.database;
+    final values = contract.toMap()..remove('id');
+    return await db.update(
+      'contracts',
+      values,
+      where: 'id = ?',
+      whereArgs: [contract.id],
+    );
   }
 
   Future<int> terminateContract(int contractId, int roomId) async {
@@ -575,6 +626,24 @@ class DatabaseHelper {
     );
   }
 
+  Future<int> terminateContractWithRoomSync(int contractId, int roomId) async {
+    final db = await instance.database;
+    return await db.transaction((txn) async {
+      await txn.update(
+        'rooms',
+        {'status': 'empty'},
+        where: 'id = ?',
+        whereArgs: [roomId],
+      );
+      return await txn.update(
+        'contracts',
+        {'status': 'terminated'},
+        where: 'id = ?',
+        whereArgs: [contractId],
+      );
+    });
+  }
+
   // --- Invoices CRUD ---
   Future<List<InvoiceModel>> getAllInvoices() async {
     final db = await instance.database;
@@ -585,6 +654,19 @@ class DatabaseHelper {
   Future<int> insertInvoice(InvoiceModel invoice) async {
     final db = await instance.database;
     return await db.insert('invoices', invoice.toMap());
+  }
+
+  Future<int> updateInvoice(InvoiceModel invoice) async {
+    if (invoice.id == null) return 0;
+
+    final db = await instance.database;
+    final values = invoice.toMap()..remove('id');
+    return await db.update(
+      'invoices',
+      values,
+      where: 'id = ?',
+      whereArgs: [invoice.id],
+    );
   }
 
   Future<int> updateInvoiceStatus(int invoiceId, String status, String? paymentDate) async {
@@ -674,9 +756,30 @@ class DatabaseHelper {
     return revenue;
   }
 
-  // Danh sách khách nợ tiền phòng (Task LUAN.5.2)
-  Future<List<Map<String, dynamic>>> getDebtorList() async {
+  Future<Map<String, double>> getRevenueSummary({String? billingMonth}) async {
     final db = await instance.database;
+    final whereClause = billingMonth == null ? '' : 'AND billing_month = ?';
+    final whereArgs = billingMonth == null ? <Object?>[] : <Object?>[billingMonth];
+    final result = await db.rawQuery('''
+      SELECT
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN total_price ELSE 0 END), 0) as paid_total,
+        COALESCE(SUM(CASE WHEN status = 'unpaid' THEN total_price ELSE 0 END), 0) as unpaid_total
+      FROM invoices
+      WHERE 1 = 1 $whereClause
+    ''', whereArgs);
+
+    final row = result.first;
+    return {
+      'paid': (row['paid_total'] as num? ?? 0).toDouble(),
+      'unpaid': (row['unpaid_total'] as num? ?? 0).toDouble(),
+    };
+  }
+
+  // Danh sách khách nợ tiền phòng (Task LUAN.5.2)
+  Future<List<Map<String, dynamic>>> getDebtorList({String? billingMonth}) async {
+    final db = await instance.database;
+    final monthFilter = billingMonth == null ? '' : 'AND i.billing_month = ?';
+    final args = billingMonth == null ? <Object?>[] : <Object?>[billingMonth];
     return await db.rawQuery('''
       SELECT 
         i.id as invoice_id,
@@ -692,11 +795,40 @@ class DatabaseHelper {
       JOIN contracts c ON i.contract_id = c.id
       JOIN tenants t ON c.tenant_id = t.id
       WHERE i.status = 'unpaid'
+        $monthFilter
       ORDER BY i.billing_month DESC
-    ''');
+    ''', args);
   }
 
   // Quét và cập nhật trạng thái hợp đồng / tạo thông báo (Task KHANH.5.1)
+  Future<Map<String, dynamic>> runOfflineHealthCheck() async {
+    final db = await instance.database;
+    final checks = <String, bool>{};
+
+    try {
+      checks['database_open'] = db.isOpen;
+      checks['users_query'] = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM users')) != null;
+      checks['rooms_query'] = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM rooms')) != null;
+      checks['contracts_query'] = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM contracts')) != null;
+      checks['invoices_query'] = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM invoices')) != null;
+      await getRevenueByMonth();
+      checks['revenue_query'] = true;
+      await getDebtorList();
+      checks['debtor_query'] = true;
+    } catch (_) {
+      checks['offline_scan_error'] = false;
+    }
+
+    final passed = checks.values.where((value) => value).length;
+    return {
+      'passed': passed,
+      'total': checks.length,
+      'isHealthy': checks.isNotEmpty && checks.values.every((value) => value),
+      'checks': checks,
+      'checkedAt': DateTime.now().toIso8601String(),
+    };
+  }
+
   Future<void> runBackgroundScans(int currentUserId) async {
     final db = await instance.database;
     final today = DateTime.now();

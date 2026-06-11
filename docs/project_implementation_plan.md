@@ -167,14 +167,14 @@ CREATE TABLE notifications (
 *   [ ] **Task LUAN.3.3:** Viết logic lọc phòng nhanh theo trạng thái và theo từng Cơ sở trọ trực quan.
 
 #### **Sprint 4 (Ngày 7 - 8): Hồ sơ Admin & SQLite Query nâng cao**
-*   [ ] **Task LUAN.4.1:** Thiết kế màn hình **`Cá nhân - Admin (Updated AppBar)`**: Xem thông tin tài khoản admin, tùy chọn đổi mật khẩu và nút Đăng xuất.
-*   [ ] **Task LUAN.4.2:** Viết các hàm truy vấn SQL nâng cao phục vụ cho nghiệp vụ thống kê doanh thu và báo cáo nợ tiền phòng.
-*   [ ] **Task LUAN.4.3:** Hỗ trợ Gia Khánh tích hợp SQLite vào phân hệ Quản lý hợp đồng và Hóa đơn.
+*   [x] **Task LUAN.4.1:** Thiết kế màn hình **`Cá nhân - Admin (Updated AppBar)`**: Xem thông tin tài khoản admin, tùy chọn đổi mật khẩu và nút Đăng xuất.
+*   [x] **Task LUAN.4.2:** Viết các hàm truy vấn SQL nâng cao phục vụ cho nghiệp vụ thống kê doanh thu và báo cáo nợ tiền phòng.
+*   [x] **Task LUAN.4.3:** Hỗ trợ Gia Khánh tích hợp SQLite vào phân hệ Quản lý hợp đồng và Hóa đơn.
 
 #### **Sprint 5 (Ngày 9 - 10): Thống kê doanh thu đồ họa**
-*   [ ] **Task LUAN.5.1:** Thiết kế màn hình **`Thống kê - Admin (Updated Room Icon)`**: Vẽ biểu đồ cột trực quan hiển thị doanh thu thực nhận từng tháng.
-*   [ ] **Task LUAN.5.2:** Lập trình danh sách hiển thị các khách thuê nợ tiền phòng trong tháng hiện tại (`status = 'unpaid'`).
-*   [ ] **Task LUAN.5.3:** Viết hàm quét offline kiểm tra toàn bộ hoạt động của app khi không có kết nối Internet.
+*   [x] **Task LUAN.5.1:** Thiết kế màn hình **`Thống kê - Admin (Updated Room Icon)`**: Vẽ biểu đồ cột trực quan hiển thị doanh thu thực nhận từng tháng.
+*   [x] **Task LUAN.5.2:** Lập trình danh sách hiển thị các khách thuê nợ tiền phòng trong tháng hiện tại (`status = 'unpaid'`).
+*   [x] **Task LUAN.5.3:** Viết hàm quét offline kiểm tra toàn bộ hoạt động của app khi không có kết nối Internet.
 
 #### **Sprint 6 (Ngày 11 - 12): Git Merge & Đóng gói sản phẩm**
 *   [ ] **Task LUAN.6.1:** Nhận toàn bộ code từ nhánh của Tuấn Huy và Gia Khánh, tiến hành Git Merge và giải quyết các conflict.

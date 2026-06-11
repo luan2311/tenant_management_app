@@ -32,7 +32,9 @@ class AppState extends ChangeNotifier {
   Map<String, int> roomStats = {'total': 0, 'empty': 0, 'rented': 0, 'maintenance': 0};
   int unpaidInvoicesCount = 0;
   Map<String, double> monthlyRevenue = {};
+  Map<String, double> revenueSummary = {'paid': 0, 'unpaid': 0};
   List<Map<String, dynamic>> debtorList = [];
+  Map<String, dynamic>? offlineHealthCheck;
 
   bool _isLoading = false;
 
@@ -47,6 +49,7 @@ class AppState extends ChangeNotifier {
   List<InvoiceModel> get invoices => _invoices;
   List<NotificationModel> get notifications => _notifications;
   bool get isLoading => _isLoading;
+  String get currentBillingMonth => _formatBillingMonth(DateTime.now());
 
   void setLoading(bool loading) {
     _isLoading = loading;
@@ -103,7 +106,8 @@ class AppState extends ChangeNotifier {
     roomStats = await _db.getRoomStatistics();
     unpaidInvoicesCount = await _db.getUnpaidInvoicesCount();
     monthlyRevenue = await _db.getRevenueByMonth();
-    debtorList = await _db.getDebtorList();
+    revenueSummary = await _db.getRevenueSummary(billingMonth: currentBillingMonth);
+    debtorList = await _db.getDebtorList(billingMonth: currentBillingMonth);
 
     applyFilters();
   }
@@ -142,6 +146,75 @@ class AppState extends ChangeNotifier {
       return true;
     }
     setLoading(false);
+    return false;
+  }
+
+  Future<bool> changeCurrentUserPassword(String currentPassword, String newPassword) async {
+    final user = _currentUser;
+    if (user?.id == null) return false;
+
+    final isValid = await _db.verifyUserPassword(user!.id!, currentPassword);
+    if (!isValid) return false;
+
+    final affectedRows = await _db.updateUserPassword(user.id!, newPassword);
+    if (affectedRows > 0) {
+      _currentUser = user.copyWith(password: newPassword);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> runOfflineHealthCheck() async {
+    offlineHealthCheck = await _db.runOfflineHealthCheck();
+    notifyListeners();
+  }
+
+  Future<bool> saveContract(ContractModel contract) async {
+    setLoading(true);
+    final affectedRows = contract.id == null
+        ? await _db.createContractWithRoomSync(contract)
+        : await _db.updateContract(contract);
+    if (affectedRows > 0) {
+      await refreshAllData();
+      setLoading(false);
+      return true;
+    }
+    setLoading(false);
+    return false;
+  }
+
+  Future<bool> terminateContract(int contractId, int roomId) async {
+    setLoading(true);
+    final affectedRows = await _db.terminateContractWithRoomSync(contractId, roomId);
+    if (affectedRows > 0) {
+      await refreshAllData();
+      setLoading(false);
+      return true;
+    }
+    setLoading(false);
+    return false;
+  }
+
+  Future<bool> saveInvoice(InvoiceModel invoice) async {
+    setLoading(true);
+    final affectedRows = invoice.id == null ? await _db.insertInvoice(invoice) : await _db.updateInvoice(invoice);
+    if (affectedRows > 0) {
+      await refreshAllData();
+      setLoading(false);
+      return true;
+    }
+    setLoading(false);
+    return false;
+  }
+
+  Future<bool> markInvoicePaid(int invoiceId) async {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final affectedRows = await _db.updateInvoiceStatus(invoiceId, 'paid', today);
+    if (affectedRows > 0) {
+      await refreshAllData();
+      return true;
+    }
     return false;
   }
 
@@ -220,5 +293,10 @@ class AppState extends ChangeNotifier {
       result = result.replaceAll(regex, vietnamese[i]);
     }
     return result;
+  }
+
+  String _formatBillingMonth(DateTime value) {
+    final month = value.month.toString().padLeft(2, '0');
+    return '${value.year}-$month';
   }
 }
