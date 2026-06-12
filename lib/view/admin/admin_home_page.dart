@@ -5,8 +5,15 @@ import '../../service/app_state.dart';
 import '../../theme/styles.dart';
 import 'admin_add_room_page.dart';
 
-class AdminHomePage extends StatelessWidget {
+class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
+
+  @override
+  State<AdminHomePage> createState() => _AdminHomePageState();
+}
+
+class _AdminHomePageState extends State<AdminHomePage> {
+  int _selectedRevenueMonths = 6;
 
   @override
   Widget build(BuildContext context) {
@@ -88,11 +95,17 @@ class AdminHomePage extends StatelessWidget {
                   fontSize: 13,
                 ),
               ),
-              Text('6 tháng', style: AppStyles.caption(context, fontWeight: FontWeight.w700)),
+              _RevenueRangeSelector(
+                selectedMonths: _selectedRevenueMonths,
+                onChanged: (value) => setState(() => _selectedRevenueMonths = value),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          _RevenueChart(monthlyRevenue: appState.monthlyRevenue),
+          _RevenueChart(
+            monthlyRevenue: appState.monthlyRevenue,
+            selectedMonths: _selectedRevenueMonths,
+          ),
           const SizedBox(height: 28),
           Text(
             'CẦN XỬ LÝ',
@@ -130,6 +143,53 @@ class AdminHomePage extends StatelessWidget {
                   child: _AttentionTile(debtor: debtor),
                 )),
         ],
+      ),
+    );
+  }
+}
+
+class _RevenueRangeSelector extends StatelessWidget {
+  final int selectedMonths;
+  final ValueChanged<int> onChanged;
+
+  const _RevenueRangeSelector({
+    required this.selectedMonths,
+    required this.onChanged,
+  });
+
+  static const List<int> _monthOptions = [1, 3, 6, 12];
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<int>(
+      initialValue: selectedMonths,
+      tooltip: 'Chọn mốc thống kê',
+      onSelected: onChanged,
+      itemBuilder: (context) => [
+        for (final months in _monthOptions)
+          PopupMenuItem<int>(
+            value: months,
+            child: Text('$months tháng', style: AppStyles.body(context, fontWeight: FontWeight.w700)),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.70),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Colors.white.withOpacity(0.82)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$selectedMonths tháng',
+              style: AppStyles.caption(context, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.sanctuaryDark),
+          ],
+        ),
       ),
     );
   }
@@ -252,7 +312,7 @@ class _RevenueCard extends StatelessWidget {
           Positioned(
             right: -10,
             top: -10,
-            child: Icon(Icons.water_drop_outlined, size: 72, color: AppColors.sanctuaryBlue.withOpacity(0.75)),
+            child: Icon(Icons.monetization_on_outlined, size: 72, color: AppColors.sanctuaryBlue.withOpacity(0.75)),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,8 +363,8 @@ class _MiniMetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassmorphicContainer(
-      height: 145,
-      padding: const EdgeInsets.all(18),
+      height: 156,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       borderRadius: 20,
       opacity: 0.70,
       child: Column(
@@ -362,12 +422,19 @@ class _QuickAction extends StatelessWidget {
 
 class _RevenueChart extends StatelessWidget {
   final Map<String, double> monthlyRevenue;
+  final int selectedMonths;
 
-  const _RevenueChart({required this.monthlyRevenue});
+  const _RevenueChart({
+    required this.monthlyRevenue,
+    required this.selectedMonths,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final entries = monthlyRevenue.entries.toList();
+    final allEntries = monthlyRevenue.entries.toList();
+    final entries = allEntries.length <= selectedMonths
+        ? allEntries
+        : allEntries.skip(allEntries.length - selectedMonths).toList();
 
     return GlassmorphicContainer(
       height: 256,

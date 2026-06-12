@@ -153,8 +153,10 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
                         decoration: _inputDecoration('Tiền đặt cọc (đ)', Icons.savings_outlined),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) return 'Vui lòng nhập tiền đặt cọc';
-                          final parsed = double.tryParse(value);
+                          final parsed = double.tryParse(value.trim());
                           if (parsed == null || parsed < 0) return 'Tiền cọc không được là số âm';
+                          final price = double.tryParse(_priceController.text.trim());
+                          if (price != null && parsed >= price) return 'Tiền cọc phải nhỏ hơn tiền thuê';
                           return null;
                         },
                       ),

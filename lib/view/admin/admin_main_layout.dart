@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/styles.dart';
@@ -48,9 +50,13 @@ class _AdminMainLayoutState extends State<AdminMainLayout> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-        child: GlassmorphicContainer(
+      bottomNavigationBar: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+            color: Colors.white.withOpacity(0.18),
+            child: GlassmorphicContainer(
           padding: const EdgeInsets.symmetric(vertical: 7),
           borderRadius: 26,
           opacity: 0.84,
@@ -95,6 +101,8 @@ class _AdminMainLayoutState extends State<AdminMainLayout> {
                 label: 'Cá nhân',
               ),
             ],
+          ),
+            ),
           ),
         ),
       ),
