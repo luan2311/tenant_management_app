@@ -18,7 +18,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
-  final _emailController    = TextEditingController();
+  bool _submitted = false;
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
@@ -26,6 +27,28 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  String? get _emailError {
+    final value = _emailController.text.trim();
+    if (value.isEmpty) return 'Vui lòng nhập email.';
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) {
+      return 'Email phải đúng định dạng, ví dụ lumiere@gmail.com.';
+    }
+    return null;
+  }
+
+  String? get _passwordError {
+    final value = _passwordController.text;
+    if (value.isEmpty) return 'Vui lòng nhập mật khẩu.';
+    if (value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự.';
+    return null;
+  }
+
+  bool get _isFormValid => _emailError == null && _passwordError == null;
+
+  void _refreshSubmittedErrors() {
+    if (_submitted) setState(() {});
   }
 
   @override
@@ -37,13 +60,34 @@ class _LoginScreenState extends State<LoginScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 448),
                   child: Column(
                     children: [
-                      _buildBrandSection(),
-                      const SizedBox(height: 40),
+                      const Text(
+                        'Lumiere Stay',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                          color: kOnSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Ethereal Sanctuary Management',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5,
+                          color: kOnSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
                       _buildLoginCard(),
                       const SizedBox(height: 40),
                       _buildFooterLink(),
@@ -53,11 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          Positioned(
-            bottom: 24,
-            right: 24,
-            child: _buildHelpButton(),
-          ),
+          Positioned(bottom: 24, right: 24, child: _buildHelpButton()),
         ],
       ),
     );
@@ -71,11 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
         gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [
-            Color(0xFFDCEFF9),
-            Color(0xFFF7F9FB),
-            Color(0xFFEFF5FA),
-          ],
+          colors: [Color(0xFFDCEFF9), Color(0xFFF7F9FB), Color(0xFFEFF5FA)],
         ),
       ),
       child: Stack(
@@ -117,62 +153,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // ─── Brand Section ─────────────────────────────────────────────────────────
-
-  Widget _buildBrandSection() {
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
-                boxShadow: [
-                  BoxShadow(
-                    color: kPrimary.withValues(alpha: 0.12),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.house_siding_rounded,
-                size: 40,
-                color: kPrimary,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        const Text(
-          'Lumiere Stay',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-            color: kOnSurface,
-          ),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Ethereal Sanctuary Management',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.5,
-            color: kOnSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-
   // ─── Login Card ────────────────────────────────────────────────────────────
 
   Widget _buildLoginCard() {
@@ -211,12 +191,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(fontSize: 13, color: kOnSurfaceVariant),
               ),
               const SizedBox(height: 32),
-              _buildInputLabel('Email hoặc Số điện thoại'),
+              _buildInputLabel('Email'),
               const SizedBox(height: 8),
               _buildTextField(
                 controller: _emailController,
-                hint: 'example@lumiere.com',
+                hint: 'lumiere@gmail.com',
                 prefixIcon: Icons.alternate_email_rounded,
+                keyboardType: TextInputType.emailAddress,
+                errorText: _submitted ? _emailError : null,
               ),
               const SizedBox(height: 20),
               Row(
@@ -227,7 +209,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const ForgotPasswordScreen()),
+                        builder: (_) => const ForgotPasswordScreen(),
+                      ),
                     ),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
@@ -246,7 +229,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              _buildPasswordField(),
+              _buildPasswordField(
+                errorText: _submitted ? _passwordError : null,
+              ),
               const SizedBox(height: 28),
               _buildLoginButton(),
               const SizedBox(height: 32),
@@ -277,77 +262,163 @@ class _LoginScreenState extends State<LoginScreen> {
     required TextEditingController controller,
     required String hint,
     required IconData prefixIcon,
+    TextInputType keyboardType = TextInputType.text,
+    String? errorText,
   }) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(fontSize: 15, color: kOnSurface),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-            color: kOutline.withValues(alpha: 0.6), fontSize: 14),
-        prefixIcon: Icon(prefixIcon, color: kOutline, size: 22),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.55),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide:
-              BorderSide(color: Colors.white.withValues(alpha: 0.45)),
+    final hasError = errorText != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          onChanged: (_) => _refreshSubmittedErrors(),
+          style: const TextStyle(fontSize: 15, color: kOnSurface),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: kOutline.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
+            prefixIcon: Icon(
+              prefixIcon,
+              color: hasError ? Colors.red.shade700 : kOutline,
+              size: 22,
+            ),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.55),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 18,
+              horizontal: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: hasError
+                    ? Colors.red.shade700
+                    : Colors.white.withValues(alpha: 0.45),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: hasError
+                    ? Colors.red.shade700
+                    : Colors.white.withValues(alpha: 0.45),
+                width: hasError ? 1.5 : 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: hasError ? Colors.red.shade700 : kPrimaryFixed,
+                width: 2,
+              ),
+            ),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide:
-              BorderSide(color: Colors.white.withValues(alpha: 0.45)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: kPrimaryFixed, width: 2),
-        ),
-      ),
+        _buildFieldError(errorText),
+      ],
     );
   }
 
-  Widget _buildPasswordField() {
-    return TextField(
-      controller: _passwordController,
-      obscureText: _obscurePassword,
-      style: const TextStyle(fontSize: 15, color: kOnSurface),
-      decoration: InputDecoration(
-        hintText: '••••••••',
-        hintStyle: TextStyle(
-            color: kOutline.withValues(alpha: 0.6), fontSize: 14),
-        prefixIcon: const Icon(Icons.lock_outline_rounded,
-            color: kOutline, size: 22),
-        suffixIcon: IconButton(
-          onPressed: () =>
-              setState(() => _obscurePassword = !_obscurePassword),
-          icon: Icon(
-            _obscurePassword
-                ? Icons.visibility_outlined
-                : Icons.visibility_off_outlined,
-            color: kOutline,
-            size: 22,
+  Widget _buildPasswordField({String? errorText}) {
+    final hasError = errorText != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _passwordController,
+          obscureText: _obscurePassword,
+          onChanged: (_) => _refreshSubmittedErrors(),
+          style: const TextStyle(fontSize: 15, color: kOnSurface),
+          decoration: InputDecoration(
+            hintText: '••••••••',
+            hintStyle: TextStyle(
+              color: kOutline.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
+            prefixIcon: Icon(
+              Icons.lock_outline_rounded,
+              color: hasError ? Colors.red.shade700 : kOutline,
+              size: 22,
+            ),
+            suffixIcon: IconButton(
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
+              icon: Icon(
+                _obscurePassword
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                color: hasError ? Colors.red.shade700 : kOutline,
+                size: 22,
+              ),
+            ),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.55),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 18,
+              horizontal: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: hasError
+                    ? Colors.red.shade700
+                    : Colors.white.withValues(alpha: 0.45),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: hasError
+                    ? Colors.red.shade700
+                    : Colors.white.withValues(alpha: 0.45),
+                width: hasError ? 1.5 : 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: hasError ? Colors.red.shade700 : kPrimaryFixed,
+                width: 2,
+              ),
+            ),
           ),
         ),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.55),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide:
-              BorderSide(color: Colors.white.withValues(alpha: 0.45)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide:
-              BorderSide(color: Colors.white.withValues(alpha: 0.45)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: kPrimaryFixed, width: 2),
-        ),
+        _buildFieldError(errorText),
+      ],
+    );
+  }
+
+  Widget _buildFieldError(String? errorText) {
+    if (errorText == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.error_outline_rounded,
+            color: Colors.red.shade700,
+            size: 15,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              errorText,
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontSize: 12,
+                height: 1.35,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -403,8 +474,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward_rounded,
-                        color: kOnPrimaryFixed, size: 20),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: kOnPrimaryFixed,
+                      size: 20,
+                    ),
                   ],
                 ),
         ),
@@ -413,23 +487,16 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    final email    = _emailController.text.trim();
-    final password = _passwordController.text;
+    setState(() => _submitted = true);
+    if (!_isFormValid) return;
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Vui lòng nhập đầy đủ thông tin')),
-      );
-      return;
-    }
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
     setState(() => _isLoading = true);
     try {
       await AuthService.signInWithEmail(email, password);
-
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+      // _SessionGate trong main.dart tự route theo role (admin/tenant)
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       String message;
@@ -450,18 +517,20 @@ class _LoginScreenState extends State<LoginScreen> {
         case 'too-many-requests':
           message = 'Quá nhiều lần thử. Vui lòng thử lại sau.';
           break;
+        case 'network-request-failed':
+          message = 'Lỗi mạng. Kiểm tra kết nối internet của thiết bị.';
+          break;
         default:
           message = 'Đăng nhập thất bại: ${e.message}';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    } catch (_) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Đăng nhập thất bại. Vui lòng thử lại.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -519,10 +588,7 @@ class _LoginScreenState extends State<LoginScreen> {
         icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
         label: const Text(
           'Đăng nhập bằng Google',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         style: OutlinedButton.styleFrom(
           foregroundColor: kOnSurface,
@@ -539,12 +605,10 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final user = await AuthService.signInWithGoogle();
       if (user == null) {
-        // Người dùng huỷ đăng nhập Google
         if (mounted) setState(() => _isLoading = false);
         return;
       }
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+      // _SessionGate trong main.dart tự route theo role (admin/tenant)
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -553,7 +617,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đăng nhập Google thất bại. Vui lòng thử lại.')),
+        const SnackBar(
+          content: Text('Đăng nhập Google thất bại. Vui lòng thử lại.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -607,8 +673,7 @@ class _LoginScreenState extends State<LoginScreen> {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.65),
             shape: BoxShape.circle,
-            border: Border.all(
-                color: Colors.white.withValues(alpha: 0.45)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.08),
@@ -617,8 +682,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-          child: const Icon(Icons.help_outline_rounded,
-              color: kPrimary, size: 22),
+          child: const Icon(
+            Icons.help_outline_rounded,
+            color: kPrimary,
+            size: 22,
+          ),
         ),
       ),
     );

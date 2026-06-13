@@ -54,7 +54,7 @@ class AdminRoomsPage extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
-              mainAxisExtent: 190,
+              mainAxisExtent: 208,
             ),
             itemBuilder: (context, index) {
               final room = rooms[index];
@@ -138,17 +138,25 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChoiceChip(
-      label: Text(label),
+      label: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.visible,
+      ),
       selected: selected,
       onSelected: (_) => onTap(),
       selectedColor: AppColors.sanctuaryDark,
       backgroundColor: Colors.white.withOpacity(0.52),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.standard,
       labelStyle: AppStyles.caption(
         context,
         color: selected ? Colors.white : AppColors.textPrimary,
         fontWeight: FontWeight.w900,
         fontSize: 11,
-      ),
+      ).copyWith(height: 1.25),
       side: BorderSide(color: Colors.white.withOpacity(0.72)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
     );
@@ -201,6 +209,8 @@ class _RoomCard extends StatelessWidget {
           Text(
             'Phòng ${room.roomNumber}',
             style: AppStyles.title(context, color: AppColors.sanctuaryInk, fontWeight: FontWeight.w900, fontSize: 17),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Text(
@@ -212,9 +222,19 @@ class _RoomCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text('Giá thuê', style: AppStyles.caption(context, fontSize: 10, fontWeight: FontWeight.w700)),
           const SizedBox(height: 2),
-          Text(_formatMoney(room.price), style: AppStyles.body(context, color: AppColors.sanctuaryInk, fontWeight: FontWeight.w900)),
+          Text(
+            _formatMoney(room.price),
+            style: AppStyles.body(context, color: AppColors.sanctuaryInk, fontWeight: FontWeight.w900),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 4),
-          Text('Cọc ${_formatMoney(room.deposit)} - ${room.maxTenants} người', style: AppStyles.caption(context, fontSize: 10)),
+          Text(
+            'Cọc ${_formatMoney(room.deposit)} - ${room.maxTenants} người',
+            style: AppStyles.caption(context, fontSize: 10),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
