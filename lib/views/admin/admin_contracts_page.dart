@@ -344,8 +344,8 @@ class _SummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassmorphicContainer(
-      height: 126,
-      padding: const EdgeInsets.all(16),
+      height: 136,
+      padding: const EdgeInsets.all(14),
       borderRadius: 20,
       opacity: 0.72,
       child: Column(
@@ -356,7 +356,7 @@ class _SummaryTile extends StatelessWidget {
             backgroundColor: color.withValues(alpha: 0.12),
             child: Icon(icon, color: color, size: 20),
           ),
-          const Spacer(),
+          const SizedBox(height: 10),
           Text(
             value,
             style: AppStyles.headline(
@@ -366,8 +366,11 @@ class _SummaryTile extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: AppStyles.caption(
               context,
               fontWeight: FontWeight.w800,

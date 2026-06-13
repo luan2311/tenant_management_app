@@ -5,6 +5,8 @@ class ContractModel {
   final String startDate; // YYYY-MM-DD
   final String endDate; // YYYY-MM-DD
   final double deposit;
+  final double initialElectricity;
+  final double initialWater;
   final String status; // 'active', 'expired', 'terminated'
 
   ContractModel({
@@ -14,6 +16,8 @@ class ContractModel {
     required this.startDate,
     required this.endDate,
     required this.deposit,
+    this.initialElectricity = 0.0,
+    this.initialWater = 0.0,
     this.status = 'active',
   });
 
@@ -25,6 +29,9 @@ class ContractModel {
       startDate: map['start_date'] as String,
       endDate: map['end_date'] as String,
       deposit: (map['deposit'] as num).toDouble(),
+      initialElectricity: (map['initial_electricity'] as num? ?? 0.0)
+          .toDouble(),
+      initialWater: (map['initial_water'] as num? ?? 0.0).toDouble(),
       status: map['status'] as String? ?? 'active',
     );
   }
@@ -37,6 +44,8 @@ class ContractModel {
       'start_date': startDate,
       'end_date': endDate,
       'deposit': deposit,
+      'initial_electricity': initialElectricity,
+      'initial_water': initialWater,
       'status': status,
     };
   }
@@ -48,6 +57,8 @@ class ContractModel {
     String? startDate,
     String? endDate,
     double? deposit,
+    double? initialElectricity,
+    double? initialWater,
     String? status,
   }) {
     return ContractModel(
@@ -57,6 +68,8 @@ class ContractModel {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       deposit: deposit ?? this.deposit,
+      initialElectricity: initialElectricity ?? this.initialElectricity,
+      initialWater: initialWater ?? this.initialWater,
       status: status ?? this.status,
     );
   }

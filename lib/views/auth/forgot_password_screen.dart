@@ -199,7 +199,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Nhập email tài khoản. Firebase sẽ gửi liên kết đặt lại mật khẩu, bạn có thể dán mã hoặc toàn bộ liên kết vào bước tiếp theo.',
+          'Nhập email tài khoản. Firebase sẽ gửi link đặt lại mật khẩu, bạn có thể dán toàn bộ link hoặc mã oobCode vào bước tiếp theo.',
           style: TextStyle(fontSize: 13, color: kOnSurfaceVariant, height: 1.5),
         ),
         const SizedBox(height: 28),
@@ -213,7 +213,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 24),
         _buildPrimaryButton(
-          label: 'Gửi mã xác nhận',
+          label: 'Gửi link đặt lại',
           icon: Icons.mark_email_read_outlined,
           onPressed: _sendResetEmail,
         ),
@@ -238,7 +238,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Email đã gửi tới ${_emailController.text.trim()}. Kiểm tra hộp thư hoặc spam, sau đó dán mã xác nhận hoặc liên kết reset vào đây.',
+          'Email đã gửi tới ${_emailController.text.trim()}. Kiểm tra hộp thư hoặc spam, sau đó dán link đặt lại mật khẩu vào đây.',
           style: const TextStyle(
             fontSize: 13,
             color: kOnSurfaceVariant,
@@ -246,11 +246,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        _buildInputLabel('Mã xác nhận hoặc link reset'),
+        _buildInputLabel('Link reset hoặc mã oobCode'),
         const SizedBox(height: 8),
         _buildTextField(
           controller: _codeController,
-          hint: 'Dán mã hoặc liên kết từ email',
+          hint: 'Dán link từ email Firebase',
           icon: Icons.key_rounded,
         ),
         const SizedBox(height: 18),
@@ -286,7 +286,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: TextButton.icon(
             onPressed: _isLoading ? null : _sendResetEmail,
             icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('Gửi lại email xác nhận'),
+            label: const Text('Gửi lại link đặt lại'),
           ),
         ),
         const SizedBox(height: 10),
@@ -501,7 +501,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final confirmPassword = _confirmPasswordController.text;
 
     if (code == null) {
-      _showSnackBar('Vui lòng nhập mã xác nhận hoặc dán liên kết reset.');
+      _showSnackBar('Vui lòng dán link reset hoặc mã oobCode từ email.');
       return;
     }
     if (newPassword.length < 6) {
@@ -580,9 +580,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String _firebaseConfirmMessage(FirebaseAuthException e) {
     switch (e.code) {
       case 'expired-action-code':
-        return 'Mã xác nhận đã hết hạn. Vui lòng gửi lại email.';
+        return 'Link đặt lại đã hết hạn. Vui lòng gửi lại email.';
       case 'invalid-action-code':
-        return 'Mã xác nhận không hợp lệ hoặc đã được sử dụng.';
+        return 'Link đặt lại không hợp lệ hoặc đã được sử dụng.';
       case 'weak-password':
         return 'Mật khẩu mới quá yếu.';
       case 'user-disabled':

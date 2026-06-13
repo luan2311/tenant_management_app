@@ -87,12 +87,14 @@ class LumiereBottomNavBar extends StatelessWidget {
   final List<NavItem> items;
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final bool showLabelOnlyWhenActive;
 
   const LumiereBottomNavBar({
     super.key,
     required this.items,
     required this.currentIndex,
     required this.onTap,
+    this.showLabelOnlyWhenActive = false,
   });
 
   /// Preset cho phân hệ Khách thuê (4 tab).
@@ -116,6 +118,7 @@ class LumiereBottomNavBar extends StatelessWidget {
       items: _adminItems,
       currentIndex: currentIndex,
       onTap: onTap,
+      showLabelOnlyWhenActive: true,
     );
   }
 
@@ -149,6 +152,7 @@ class LumiereBottomNavBar extends StatelessWidget {
                   item: items[i],
                   isActive: active,
                   isCompact: items.length >= 5,
+                  showLabelOnlyWhenActive: showLabelOnlyWhenActive,
                   onTap: () => onTap(i),
                 );
               }),
@@ -166,12 +170,14 @@ class _NavTabItem extends StatelessWidget {
   final NavItem item;
   final bool isActive;
   final bool isCompact;
+  final bool showLabelOnlyWhenActive;
   final VoidCallback onTap;
 
   const _NavTabItem({
     required this.item,
     required this.isActive,
     required this.isCompact,
+    required this.showLabelOnlyWhenActive,
     required this.onTap,
   });
 
@@ -206,17 +212,21 @@ class _NavTabItem extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 3),
-            AnimatedDefaultTextStyle(
+            AnimatedOpacity(
               duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: isCompact ? 9 : 10,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? kPrimary : kOutline,
-              ),
-              child: Text(
-                item.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              opacity: showLabelOnlyWhenActive && !isActive ? 0.0 : 1.0,
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontSize: isCompact ? 9 : 10,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? kPrimary : kOutline,
+                ),
+                child: Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ],

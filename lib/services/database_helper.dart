@@ -29,7 +29,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
         await db.execute('DROP TABLE IF EXISTS notifications');
@@ -109,6 +109,8 @@ class DatabaseHelper {
           start_date TEXT NOT NULL,
           end_date TEXT NOT NULL,
           deposit REAL NOT NULL,
+          initial_electricity REAL NOT NULL DEFAULT 0,
+          initial_water REAL NOT NULL DEFAULT 0,
           status TEXT CHECK(status IN ('active', 'expired', 'terminated')) DEFAULT 'active',
           FOREIGN KEY(room_id) REFERENCES rooms(id) ON DELETE CASCADE,
           FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
@@ -201,39 +203,47 @@ class DatabaseHelper {
       'status': 1,
     });
 
-    final Map<String, int> facilityIds = {
-      'Quan 1': fac1,
-      'Quan 3': fac2,
-    };
+    final Map<String, int> facilityIds = {'Quan 1': fac1, 'Quan 3': fac2};
 
     bool seededFromJson = false;
 
     try {
-      final jsonString = await rootBundle.loadString('docs/data/batdongsan_hcm_rooms_sample.json');
+      final jsonString = await rootBundle.loadString(
+        'docs/data/batdongsan_hcm_rooms_sample.json',
+      );
       final data = json.decode(jsonString);
       final listings = data['listings'] as List<dynamic>;
 
       // Track room count per district for generating room numbers
-      final Map<String, int> roomCounts = {
-        'Quan 1': 101,
-        'Quan 3': 201,
-      };
+      final Map<String, int> roomCounts = {'Quan 1': 101, 'Quan 3': 201};
 
       int getStartingRoomNumber(String district) {
         switch (district) {
-          case 'Quan 1': return 101;
-          case 'Quan 3': return 201;
-          case 'Quan 5': return 501;
-          case 'Quan 7': return 701;
-          case 'Quan 9': return 901;
-          case 'Quan 10': return 1001;
-          case 'Binh Thanh': return 801;
-          case 'Tan Binh': return 1101;
-          case 'Tan Phu': return 1201;
-          case 'Go Vap': return 601;
+          case 'Quan 1':
+            return 101;
+          case 'Quan 3':
+            return 201;
+          case 'Quan 5':
+            return 501;
+          case 'Quan 7':
+            return 701;
+          case 'Quan 9':
+            return 901;
+          case 'Quan 10':
+            return 1001;
+          case 'Binh Thanh':
+            return 801;
+          case 'Tan Binh':
+            return 1101;
+          case 'Tan Phu':
+            return 1201;
+          case 'Go Vap':
+            return 601;
           case 'TP Thu Duc':
-          case 'Thu Duc': return 1301;
-          default: return 1401;
+          case 'Thu Duc':
+            return 1301;
+          default:
+            return 1401;
         }
       }
 
@@ -255,7 +265,7 @@ class DatabaseHelper {
         final price = (listing['price_vnd'] as num).toDouble();
         final area = (listing['area_m2'] as num).toDouble();
         final amenities = List<String>.from(listing['amenities'] ?? []);
-        
+
         // Get or create facility for the district
         int facilityId;
         if (facilityIds.containsKey(district)) {
@@ -275,7 +285,7 @@ class DatabaseHelper {
         int currentCount = roomCounts[district] ?? startNum;
         final roomNumber = '$currentCount';
         roomCounts[district] = currentCount + 1;
-        
+
         String status = 'empty';
         if (roomNumber == '101' && district == 'Quan 1') {
           status = 'rented';
@@ -312,6 +322,8 @@ class DatabaseHelper {
             'start_date': '2026-01-10',
             'end_date': '2027-01-10',
             'deposit': price * 2,
+            'initial_electricity': 1200.0,
+            'initial_water': 85.0,
             'status': 'active',
           });
           await db.insert('invoices', {
@@ -326,7 +338,8 @@ class DatabaseHelper {
             'water_price': 15000.0,
             'service_price': 150000.0,
             'other_price': 50000.0,
-            'total_price': price + (150 * 3.5 * 1000) + (10 * 15 * 1000) + 150000 + 50000,
+            'total_price':
+                price + (150 * 3.5 * 1000) + (10 * 15 * 1000) + 150000 + 50000,
             'status': 'paid',
             'payment_date': '2026-05-05',
           });
@@ -342,7 +355,8 @@ class DatabaseHelper {
             'water_price': 15000.0,
             'service_price': 150000.0,
             'other_price': 0.0,
-            'total_price': price + (160 * 3.5 * 1000) + (12 * 15 * 1000) + 150000,
+            'total_price':
+                price + (160 * 3.5 * 1000) + (12 * 15 * 1000) + 150000,
             'status': 'unpaid',
             'payment_date': null,
           });
@@ -361,6 +375,8 @@ class DatabaseHelper {
             'start_date': '2026-02-15',
             'end_date': '2026-08-15',
             'deposit': price * 2,
+            'initial_electricity': 500.0,
+            'initial_water': 40.0,
             'status': 'active',
           });
           await db.insert('invoices', {
@@ -375,7 +391,8 @@ class DatabaseHelper {
             'water_price': 15000.0,
             'service_price': 200000.0,
             'other_price': 10000.0,
-            'total_price': price + (120 * 3.5 * 1000) + (12 * 15 * 1000) + 200000 + 10000,
+            'total_price':
+                price + (120 * 3.5 * 1000) + (12 * 15 * 1000) + 200000 + 10000,
             'status': 'unpaid',
             'payment_date': null,
           });
@@ -397,7 +414,13 @@ class DatabaseHelper {
         'status': 'rented',
         'description': 'Diện tích: 22m². Phòng thoáng mát trung tâm Quận 1.',
         'image_url': null,
-        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Tủ lạnh']),
+        'amenities': json.encode([
+          'Điều hoà',
+          'WC riêng',
+          'Wifi',
+          'Bãi xe',
+          'Tủ lạnh',
+        ]),
       });
 
       await db.insert('rooms', {
@@ -409,7 +432,14 @@ class DatabaseHelper {
         'status': 'empty',
         'description': 'Diện tích: 30m². Căn hộ mini có ban công gần Quận 1.',
         'image_url': null,
-        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Tủ lạnh', 'Ban công']),
+        'amenities': json.encode([
+          'Điều hoà',
+          'WC riêng',
+          'Wifi',
+          'Bãi xe',
+          'Tủ lạnh',
+          'Ban công',
+        ]),
       });
 
       int r3 = await db.insert('rooms', {
@@ -421,7 +451,13 @@ class DatabaseHelper {
         'status': 'rented',
         'description': 'Diện tích: 25m². Phòng studio trung tâm Quận 3.',
         'image_url': null,
-        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Ban công']),
+        'amenities': json.encode([
+          'Điều hoà',
+          'WC riêng',
+          'Wifi',
+          'Bãi xe',
+          'Ban công',
+        ]),
       });
 
       await db.insert('rooms', {
@@ -460,6 +496,8 @@ class DatabaseHelper {
         'start_date': '2026-01-10',
         'end_date': '2027-01-10',
         'deposit': 9000000.0,
+        'initial_electricity': 1200.0,
+        'initial_water': 85.0,
         'status': 'active',
       });
 
@@ -469,6 +507,8 @@ class DatabaseHelper {
         'start_date': '2026-02-15',
         'end_date': '2026-08-15',
         'deposit': 10000000.0,
+        'initial_electricity': 500.0,
+        'initial_water': 40.0,
         'status': 'active',
       });
 
@@ -528,7 +568,8 @@ class DatabaseHelper {
     await db.insert('notifications', {
       'user_id': adminId,
       'title': 'Yêu cầu đặt phòng mới',
-      'content': 'Khách hàng Phùng Tuấn Huy đã gửi yêu cầu thuê phòng 101 tại Cơ sở Quận 1.',
+      'content':
+          'Khách hàng Phùng Tuấn Huy đã gửi yêu cầu thuê phòng 101 tại Cơ sở Quận 1.',
       'type': 'booking_request',
       'created_at': '2026-01-09 10:30:00',
       'is_read': 1,
@@ -537,7 +578,8 @@ class DatabaseHelper {
     await db.insert('notifications', {
       'user_id': tenantId1,
       'title': 'Hóa đơn tiền phòng tháng 06/2026',
-      'content': 'Hóa đơn tiền phòng tháng 06/2026 của bạn đã được khởi tạo. Vui lòng thanh toán trước ngày 05/06/2026.',
+      'content':
+          'Hóa đơn tiền phòng tháng 06/2026 của bạn đã được khởi tạo. Vui lòng thanh toán trước ngày 05/06/2026.',
       'type': 'rent_reminder',
       'created_at': '2026-06-01 08:00:00',
       'is_read': 0,
@@ -578,11 +620,7 @@ class DatabaseHelper {
 
   Future<UserModel?> getLoggedInUser() async {
     final db = await instance.database;
-    final maps = await db.query(
-      'users',
-      where: 'is_logged_in = 1',
-      limit: 1,
-    );
+    final maps = await db.query('users', where: 'is_logged_in = 1', limit: 1);
     if (maps.isNotEmpty) {
       return UserModel.fromMap(maps.first, id: maps.first['id']?.toString());
     }
@@ -605,7 +643,8 @@ class DatabaseHelper {
   Future<UserModel?> getUserById(int id) async {
     final db = await instance.database;
     final maps = await db.query('users', where: 'id = ?', whereArgs: [id]);
-    if (maps.isNotEmpty) return UserModel.fromMap(maps.first, id: id.toString());
+    if (maps.isNotEmpty)
+      return UserModel.fromMap(maps.first, id: id.toString());
     return null;
   }
 
@@ -652,7 +691,11 @@ class DatabaseHelper {
 
   Future<List<RoomModel>> getRoomsByFacility(int facilityId) async {
     final db = await instance.database;
-    final maps = await db.query('rooms', where: 'facility_id = ?', whereArgs: [facilityId]);
+    final maps = await db.query(
+      'rooms',
+      where: 'facility_id = ?',
+      whereArgs: [facilityId],
+    );
     return maps.map((m) => RoomModel.fromMap(m)).toList();
   }
 
@@ -730,16 +773,17 @@ class DatabaseHelper {
     if (query.trim().isEmpty) {
       return await getAllTenants();
     }
-    
+
     // We fetch all and filter in Dart to handle diacritics removal perfectly
     final maps = await db.query('tenants');
     final allTenants = maps.map((m) => TenantModel.fromMap(m)).toList();
-    
+
     String normalizedQuery = _removeDiacritics(query.toLowerCase());
     return allTenants.where((tenant) {
       String nameNormalized = _removeDiacritics(tenant.fullName.toLowerCase());
       String phoneNormalized = tenant.phone.trim();
-      return nameNormalized.contains(normalizedQuery) || phoneNormalized.contains(normalizedQuery);
+      return nameNormalized.contains(normalizedQuery) ||
+          phoneNormalized.contains(normalizedQuery);
     }).toList();
   }
 
@@ -759,7 +803,7 @@ class DatabaseHelper {
       'dđ',
       'DĐ',
       'yỳýỷỹỵ',
-      'YỲÝỶỸỴ'
+      'YỲÝỶỸỴ',
     ];
 
     String result = str;
@@ -888,14 +932,15 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> updateInvoiceStatus(int invoiceId, String status, String? paymentDate) async {
+  Future<int> updateInvoiceStatus(
+    int invoiceId,
+    String status,
+    String? paymentDate,
+  ) async {
     final db = await instance.database;
     return await db.update(
       'invoices',
-      {
-        'status': status,
-        'payment_date': paymentDate,
-      },
+      {'status': status, 'payment_date': paymentDate},
       where: 'id = ?',
       whereArgs: [invoiceId],
     );
@@ -924,21 +969,29 @@ class DatabaseHelper {
   }
 
   // --- Dashboard / Thống kê Queries (Task LUAN.2.1, Task LUAN.4.2, Task LUAN.5.1) ---
-  
+
   // Tổng quan phòng cho Admin Dashboard
   Future<Map<String, int>> getRoomStatistics() async {
     final db = await instance.database;
-    
-    final totalResult = await db.rawQuery('SELECT COUNT(*) as count FROM rooms');
-    final emptyResult = await db.rawQuery('SELECT COUNT(*) as count FROM rooms WHERE status = "empty"');
-    final rentedResult = await db.rawQuery('SELECT COUNT(*) as count FROM rooms WHERE status = "rented"');
-    final maintenanceResult = await db.rawQuery('SELECT COUNT(*) as count FROM rooms WHERE status = "maintenance"');
-    
+
+    final totalResult = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM rooms',
+    );
+    final emptyResult = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM rooms WHERE status = "empty"',
+    );
+    final rentedResult = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM rooms WHERE status = "rented"',
+    );
+    final maintenanceResult = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM rooms WHERE status = "maintenance"',
+    );
+
     int total = Sqflite.firstIntValue(totalResult) ?? 0;
     int empty = Sqflite.firstIntValue(emptyResult) ?? 0;
     int rented = Sqflite.firstIntValue(rentedResult) ?? 0;
     int maintenance = Sqflite.firstIntValue(maintenanceResult) ?? 0;
-    
+
     return {
       'total': total,
       'empty': empty,
@@ -950,7 +1003,9 @@ class DatabaseHelper {
   // Số lượng hóa đơn chưa thanh toán (unpaid)
   Future<int> getUnpaidInvoicesCount() async {
     final db = await instance.database;
-    final result = await db.rawQuery('SELECT COUNT(*) as count FROM invoices WHERE status = "unpaid"');
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM invoices WHERE status = "unpaid"',
+    );
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
@@ -965,7 +1020,7 @@ class DatabaseHelper {
       GROUP BY billing_month
       ORDER BY billing_month ASC
     ''');
-    
+
     Map<String, double> revenue = {};
     for (var row in result) {
       String month = row['billing_month'] as String;
@@ -978,7 +1033,9 @@ class DatabaseHelper {
   Future<Map<String, double>> getRevenueSummary({String? billingMonth}) async {
     final db = await instance.database;
     final whereClause = billingMonth == null ? '' : 'AND billing_month = ?';
-    final whereArgs = billingMonth == null ? <Object?>[] : <Object?>[billingMonth];
+    final whereArgs = billingMonth == null
+        ? <Object?>[]
+        : <Object?>[billingMonth];
     final result = await db.rawQuery('''
       SELECT
         COALESCE(SUM(CASE WHEN status = 'paid' THEN total_price ELSE 0 END), 0) as paid_total,
@@ -995,7 +1052,9 @@ class DatabaseHelper {
   }
 
   // Danh sách khách nợ tiền phòng (Task LUAN.5.2)
-  Future<List<Map<String, dynamic>>> getDebtorList({String? billingMonth}) async {
+  Future<List<Map<String, dynamic>>> getDebtorList({
+    String? billingMonth,
+  }) async {
     final db = await instance.database;
     final monthFilter = billingMonth == null ? '' : 'AND i.billing_month = ?';
     final args = billingMonth == null ? <Object?>[] : <Object?>[billingMonth];
@@ -1026,10 +1085,26 @@ class DatabaseHelper {
 
     try {
       checks['database_open'] = db.isOpen;
-      checks['users_query'] = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM users')) != null;
-      checks['rooms_query'] = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM rooms')) != null;
-      checks['contracts_query'] = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM contracts')) != null;
-      checks['invoices_query'] = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM invoices')) != null;
+      checks['users_query'] =
+          Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM users'),
+          ) !=
+          null;
+      checks['rooms_query'] =
+          Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM rooms'),
+          ) !=
+          null;
+      checks['contracts_query'] =
+          Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM contracts'),
+          ) !=
+          null;
+      checks['invoices_query'] =
+          Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM invoices'),
+          ) !=
+          null;
       await getRevenueByMonth();
       checks['revenue_query'] = true;
       await getDebtorList();
@@ -1054,7 +1129,10 @@ class DatabaseHelper {
     final todayStr = today.toIso8601String().substring(0, 10);
 
     // 1. Quét hết hạn hợp đồng: Nếu hợp đồng cách ngày kết thúc dưới 30 ngày
-    final activeContracts = await db.query('contracts', where: 'status = "active"');
+    final activeContracts = await db.query(
+      'contracts',
+      where: 'status = "active"',
+    );
     for (var row in activeContracts) {
       int id = row['id'] as int;
       String endDateStr = row['end_date'] as String;
@@ -1084,21 +1162,33 @@ class DatabaseHelper {
           // Gần hết hạn (dưới 30 ngày). Kiểm tra xem đã thông báo chưa
           final existingNotif = await db.query(
             'notifications',
-            where: 'user_id = ? AND type = "contract_expiry" AND content LIKE ?',
+            where:
+                'user_id = ? AND type = "contract_expiry" AND content LIKE ?',
             whereArgs: [currentUserId, '%Hợp đồng số #$id%'],
           );
 
           if (existingNotif.isEmpty) {
             // Lấy thông tin phòng
-            final roomResult = await db.query('rooms', columns: ['room_number'], where: 'id = ?', whereArgs: [roomId]);
-            String roomNum = roomResult.isNotEmpty ? roomResult.first['room_number'] as String : '';
+            final roomResult = await db.query(
+              'rooms',
+              columns: ['room_number'],
+              where: 'id = ?',
+              whereArgs: [roomId],
+            );
+            String roomNum = roomResult.isNotEmpty
+                ? roomResult.first['room_number'] as String
+                : '';
 
             await db.insert('notifications', {
               'user_id': currentUserId,
               'title': 'Hợp đồng sắp hết hạn',
-              'content': 'Hợp đồng số #$id cho phòng $roomNum sẽ hết hạn sau $difference ngày (vào ngày $endDateStr).',
+              'content':
+                  'Hợp đồng số #$id cho phòng $roomNum sẽ hết hạn sau $difference ngày (vào ngày $endDateStr).',
               'type': 'contract_expiry',
-              'created_at': DateTime.now().toIso8601String().substring(0, 19).replaceAll('T', ' '),
+              'created_at': DateTime.now()
+                  .toIso8601String()
+                  .substring(0, 19)
+                  .replaceAll('T', ' '),
               'is_read': 0,
             });
           }
@@ -1110,24 +1200,39 @@ class DatabaseHelper {
 
     // 2. Quét nhắc nợ tiền phòng: Nếu ngày hiện tại nằm từ ngày 1 đến ngày 5 đầu tháng và có hóa đơn unpaid
     if (today.day >= 1 && today.day <= 5) {
-      final unpaidInvoices = await db.query('invoices', where: 'status = "unpaid"');
+      final unpaidInvoices = await db.query(
+        'invoices',
+        where: 'status = "unpaid"',
+      );
       for (var row in unpaidInvoices) {
         int id = row['id'] as int;
         String billingMonth = row['billing_month'] as String;
         int roomId = row['room_id'] as int;
 
         // Tìm user_id của tenant tương ứng
-        final contractResult = await db.query('contracts', columns: ['tenant_id'], where: 'room_id = ? AND status = "active"', whereArgs: [roomId]);
+        final contractResult = await db.query(
+          'contracts',
+          columns: ['tenant_id'],
+          where: 'room_id = ? AND status = "active"',
+          whereArgs: [roomId],
+        );
         if (contractResult.isNotEmpty) {
           int tenantId = contractResult.first['tenant_id'] as int;
-          final tenantResult = await db.query('tenants', columns: ['user_id', 'full_name'], where: 'id = ?', whereArgs: [tenantId]);
-          if (tenantResult.isNotEmpty && tenantResult.first['user_id'] != null) {
+          final tenantResult = await db.query(
+            'tenants',
+            columns: ['user_id', 'full_name'],
+            where: 'id = ?',
+            whereArgs: [tenantId],
+          );
+          if (tenantResult.isNotEmpty &&
+              tenantResult.first['user_id'] != null) {
             int tenantUserId = tenantResult.first['user_id'] as int;
 
             // Kiểm tra xem đã thông báo nhắc nợ cho tháng này chưa
             final existingNotif = await db.query(
               'notifications',
-              where: 'user_id = ? AND type = "rent_reminder" AND content LIKE ?',
+              where:
+                  'user_id = ? AND type = "rent_reminder" AND content LIKE ?',
               whereArgs: [tenantUserId, '%tháng $billingMonth%'],
             );
 
@@ -1135,9 +1240,13 @@ class DatabaseHelper {
               await db.insert('notifications', {
                 'user_id': tenantUserId,
                 'title': 'Nhắc đóng tiền phòng tháng $billingMonth',
-                'content': 'Hóa đơn tiền phòng tháng $billingMonth chưa được thanh toán. Vui lòng thanh toán trước ngày 05 của tháng.',
+                'content':
+                    'Hóa đơn tiền phòng tháng $billingMonth chưa được thanh toán. Vui lòng thanh toán trước ngày 05 của tháng.',
                 'type': 'rent_reminder',
-                'created_at': DateTime.now().toIso8601String().substring(0, 19).replaceAll('T', ' '),
+                'created_at': DateTime.now()
+                    .toIso8601String()
+                    .substring(0, 19)
+                    .replaceAll('T', ' '),
                 'is_read': 0,
               });
             }

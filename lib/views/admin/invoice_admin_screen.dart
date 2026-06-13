@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:tenant_management_app/models/invoice.dart';
 import 'package:tenant_management_app/services/app_state.dart';
 import 'package:tenant_management_app/theme/styles.dart';
+import 'create_invoice_screen.dart';
 
 class InvoiceAdminScreen extends StatelessWidget {
   const InvoiceAdminScreen({super.key});
@@ -109,6 +110,32 @@ class _AdminInvoicesPageState extends State<AdminInvoicesPage> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CreateInvoiceScreen()),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.sanctuaryDark,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              icon: const Icon(Icons.add_card_outlined, size: 19),
+              label: Text(
+                'Tạo hóa đơn',
+                style: AppStyles.body(
+                  context,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 20),
           SingleChildScrollView(
