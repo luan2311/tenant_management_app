@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 import 'package:tenant_management_app/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -425,13 +426,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // TODO Sprint 5: Thay bằng DatabaseHelper.getUserByCredentials(email, password)
-      await Future.delayed(const Duration(milliseconds: 600));
-      await AuthService.saveSession(
-          userId: 1, role: 'tenant', name: email);
+      await AuthService.signInWithEmail(email, password);
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'Không tìm thấy tài khoản với email này.';
+          break;
+        case 'wrong-password':
+        case 'invalid-credential':
+          message = 'Sai mật khẩu. Vui lòng thử lại.';
+          break;
+        case 'invalid-email':
+          message = 'Email không hợp lệ.';
+          break;
+        case 'user-disabled':
+          message = 'Tài khoản đã bị vô hiệu hóa.';
+          break;
+        case 'too-many-requests':
+          message = 'Quá nhiều lần thử. Vui lòng thử lại sau.';
+          break;
+        default:
+          message = 'Đăng nhập thất bại: ${e.message}';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -487,79 +511,53 @@ class _LoginScreenState extends State<LoginScreen> {
   // ─── Biometric Buttons ─────────────────────────────────────────────────────
 
   Widget _buildBiometricButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildGoogleLoginButton(onTap: () {
-          _handleGoogleLogin();
-        }),
-        const SizedBox(width: 24),
-        _buildBiometricButton(
-            icon: Icons.face_retouching_natural_rounded, onTap: () {}),
-      ],
-    );
-  }
-
-  Future<void> _handleGoogleLogin() async {
-    // TODO: Implement Google sign-in flow.
-  }
-
-  Widget _buildGoogleLoginButton({
-    required VoidCallback onTap,
-  }) {
-    return _buildQuickLoginButton(
-      onTap: onTap,
-      child: const Text(
-        'G',
-        style: TextStyle(
-          color: Color(0xFF4285F4),
-          fontSize: 30,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBiometricButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return _buildQuickLoginButton(
-      onTap: onTap,
-      child: Icon(icon, color: kPrimary, size: 30),
-    );
-  }
-
-  Widget _buildQuickLoginButton({
-    required Widget child,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.55)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                ),
-              ],
-            ),
-            child: Center(child: child),
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton.icon(
+        onPressed: _handleGoogleSignIn,
+        icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+        label: const Text(
+          'Đăng nhập bằng Google',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
           ),
         ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: kOnSurface,
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.45)),
+          shape: const StadiumBorder(),
+          backgroundColor: Colors.white.withValues(alpha: 0.55),
+        ),
       ),
     );
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = await AuthService.signInWithGoogle();
+      if (user == null) {
+        // Người dùng huỷ đăng nhập Google
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đăng nhập Google thất bại: ${e.message}')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đăng nhập Google thất bại. Vui lòng thử lại.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   // ─── Footer Link ───────────────────────────────────────────────────────────

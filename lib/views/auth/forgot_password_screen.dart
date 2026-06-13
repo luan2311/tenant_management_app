@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tenant_management_app/services/auth_service.dart';
 
 // ─── Forgot Password Screen ───────────────────────────────────────────────────
 
@@ -13,6 +15,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -381,37 +384,84 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ],
         ),
         child: ElevatedButton(
-          onPressed: _handleSubmit,
+          onPressed: _isLoading ? null : _handleSubmit,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
             shape: const StadiumBorder(),
           ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Gửi mã xác nhận',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: kOnPrimary,
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(kOnPrimary),
+                  ),
+                )
+              : const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Gửi mã xác nhận',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: kOnPrimary,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.arrow_forward_rounded, color: kOnPrimary, size: 20),
+                  ],
                 ),
-              ),
-              SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, color: kOnPrimary, size: 20),
-            ],
-          ),
         ),
       ),
     );
   }
 
-  void _handleSubmit() {
-    // TODO: Gọi API gửi email khôi phục mật khẩu
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã gửi mã xác nhận đến email của bạn')),
-    );
+  Future<void> _handleSubmit() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập địa chỉ email')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.sendPasswordReset(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.'),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'Không tìm thấy tài khoản với email này.';
+          break;
+        case 'invalid-email':
+          message = 'Email không hợp lệ.';
+          break;
+        default:
+          message = 'Gửi email thất bại: ${e.message}';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gửi email thất bại. Vui lòng thử lại.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   // ─── Back Link ────────────────────────────────────────────────────────────────

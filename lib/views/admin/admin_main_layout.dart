@@ -151,7 +151,7 @@ class AdminProfilePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '@${user?.username ?? "admin"}',
+                  '@${user?.email?.split('@').first ?? "admin"}',
                   style: AppStyles.caption(context),
                 ),
                 const SizedBox(height: 24),

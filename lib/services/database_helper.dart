@@ -350,7 +350,7 @@ class DatabaseHelper {
         where: 'id = ?',
         whereArgs: [maps.first['id']],
       );
-      return UserModel.fromMap(maps.first);
+      return UserModel.fromMap(maps.first, id: maps.first['id']?.toString());
     }
     return null;
   }
@@ -373,20 +373,28 @@ class DatabaseHelper {
       limit: 1,
     );
     if (maps.isNotEmpty) {
-      return UserModel.fromMap(maps.first);
+      return UserModel.fromMap(maps.first, id: maps.first['id']?.toString());
     }
     return null;
   }
 
   Future<int> insertUser(UserModel user) async {
     final db = await instance.database;
-    return await db.insert('users', user.toMap());
+    return await db.insert('users', {
+      'username': user.email?.split('@').first ?? '',
+      'password': '',
+      'full_name': user.fullName,
+      'phone': user.phone,
+      'email': user.email,
+      'role': user.role,
+      'is_logged_in': 0,
+    });
   }
 
   Future<UserModel?> getUserById(int id) async {
     final db = await instance.database;
     final maps = await db.query('users', where: 'id = ?', whereArgs: [id]);
-    if (maps.isNotEmpty) return UserModel.fromMap(maps.first);
+    if (maps.isNotEmpty) return UserModel.fromMap(maps.first, id: id.toString());
     return null;
   }
 
