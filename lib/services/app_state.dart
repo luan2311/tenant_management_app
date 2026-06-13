@@ -7,6 +7,7 @@ import 'package:tenant_management_app/models/contract.dart';
 import 'package:tenant_management_app/models/invoice.dart';
 import 'package:tenant_management_app/models/notification.dart';
 import 'database_helper.dart';
+import 'package:tenant_management_app/services/auth_service.dart';
 
 class AppState extends ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
@@ -57,35 +58,44 @@ class AppState extends ChangeNotifier {
   }
 
   // --- Auth ---
-  Future<bool> login(String username, String password) async {
+  Future<bool> login(String email, String password) async {
     setLoading(true);
-    final user = await _db.login(username, password);
-    if (user != null) {
-      _currentUser = user;
-      await refreshAllData();
-      setLoading(false);
-      return true;
+    try {
+      final userModel = await AuthService.signInWithEmail(email, password);
+      if (userModel != null) {
+        _currentUser = userModel;
+        await refreshAllData();
+        setLoading(false);
+        return true;
+      }
+    } catch (_) {
+      // Lỗi xác thực sẽ được xử lý ở UI layer
     }
     setLoading(false);
     return false;
   }
 
   Future<void> logout() async {
-    if (_currentUser != null) {
-      await _db.logout(_currentUser!.id!);
-      _currentUser = null;
-      notifyListeners();
-    }
+    await AuthService.clearSession();
+    _currentUser = null;
+    notifyListeners();
   }
 
   Future<void> checkAutoLogin() async {
     setLoading(true);
-    final user = await _db.getLoggedInUser();
+    final user = await AuthService.getCurrentUserModel();
     if (user != null) {
       _currentUser = user;
       await refreshAllData();
     }
     setLoading(false);
+  }
+
+  /// Đặt user đã đăng nhập từ Firebase (dùng cho AdminLoginScreen).
+  Future<void> loginWithFirebaseUser(UserModel user) async {
+    _currentUser = user;
+    await refreshAllData();
+    notifyListeners();
   }
 
   // --- Data Loading & Synchronization ---
@@ -93,14 +103,15 @@ class AppState extends ChangeNotifier {
     if (_currentUser == null) return;
     
     // Run background scans for notifications/contracts
-    await _db.runBackgroundScans(_currentUser!.id!);
+    // Background scans dùng int id — tạm dùng hashCode từ UID
+    await _db.runBackgroundScans(_currentUser!.uid.hashCode);
 
     _facilities = await _db.getAllFacilities();
     _rooms = await _db.getAllRooms();
     _tenants = await _db.getAllTenants();
     _contracts = await _db.getAllContracts();
     _invoices = await _db.getAllInvoices();
-    _notifications = await _db.getNotificationsForUser(_currentUser!.id!);
+    _notifications = await _db.getNotificationsForUser(_currentUser!.uid.hashCode);
 
     // Load stats
     roomStats = await _db.getRoomStatistics();
@@ -150,19 +161,12 @@ class AppState extends ChangeNotifier {
   }
 
   Future<bool> changeCurrentUserPassword(String currentPassword, String newPassword) async {
-    final user = _currentUser;
-    if (user?.id == null) return false;
-
-    final isValid = await _db.verifyUserPassword(user!.id!, currentPassword);
-    if (!isValid) return false;
-
-    final affectedRows = await _db.updateUserPassword(user.id!, newPassword);
-    if (affectedRows > 0) {
-      _currentUser = user.copyWith(password: newPassword);
-      notifyListeners();
+    try {
+      await AuthService.changePassword(currentPassword, newPassword);
       return true;
+    } catch (_) {
+      return false;
     }
-    return false;
   }
 
   Future<void> runOfflineHealthCheck() async {
@@ -262,7 +266,7 @@ class AppState extends ChangeNotifier {
   Future<void> readNotification(int notifId) async {
     await _db.markNotificationAsRead(notifId);
     if (_currentUser != null) {
-      _notifications = await _db.getNotificationsForUser(_currentUser!.id!);
+      _notifications = await _db.getNotificationsForUser(_currentUser!.uid.hashCode);
       notifyListeners();
     }
   }

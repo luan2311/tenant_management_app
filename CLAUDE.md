@@ -32,15 +32,19 @@ flutter build apk --release
 
 ## Architecture
 
-### Startup Flow — hai luồng xác thực song song
+### Startup Flow — Xác thực tập trung qua Firebase
 
-**Tenant flow** (`main.dart`):  
-`_SessionGate` (FutureBuilder → `AuthService.isLoggedIn()`) → `TenantShell` hoặc `LoginScreen`  
-`AuthService` dùng SharedPreferences để lưu session.
+**Kiến trúc xác thực (`main.dart`):**  
+Ứng dụng lắng nghe trạng thái đăng nhập qua `StreamBuilder(stream: FirebaseAuth.instance.authStateChanges())`.
+- Nếu chưa đăng nhập: Hiển thị `LoginScreen` (hoặc `OnboardingScreen` lần đầu).
+- Nếu đã đăng nhập: Trực tiếp lấy thông tin user từ Firestore qua `AuthService.getCurrentUserModel()`:
+  - Nếu `role == 'admin'`: Điều hướng tới `AdminMainLayout` (AppState cập nhật user admin).
+  - Nếu `role == 'tenant'`: Điều hướng tới `TenantShell`.
 
-**Admin flow** (vào từ `LoginScreen` → chọn "Admin"):  
-`AdminLoginScreen` → `AppState.login()` → SQLite `is_logged_in` flag → `AdminMainLayout`  
-`AppState` check `DatabaseHelper.getLoggedInUser()` khi khởi động để auto-login admin.
+**Firebase Services (`AuthService`):**
+- Xác thực qua email/password (`signInWithEmail`, `registerWithEmail`).
+- Đăng nhập bằng Google (`signInWithGoogle`).
+- Đồng bộ thông tin profile người dùng trực tiếp trên Cloud Firestore (`users` collection).
 
 ### State Management
 `AppState extends ChangeNotifier` (Provider) — singleton wrapping `DatabaseHelper.instance`.  
@@ -59,14 +63,15 @@ Tất cả UI admin đọc state qua `context.watch<AppState>()` hoặc `context
 ### Cấu trúc `lib/`
 ```
 lib/
-├── main.dart                        # Entry point, SessionGate (tenant only), route '/home'
+├── main.dart                        # Entry point, StreamBuilder lắng nghe Firebase auth state
+├── firebase_options.dart            # Cấu hình Firebase sinh bởi FlutterFire CLI
 ├── theme/
 │   ├── app_theme.dart               # kPrimary, kSurface... + buildAppTheme() — dùng cho tenant UI
 │   └── styles.dart                  # AppColors, AppStyles, GlassmorphicContainer, EtherealBackground — dùng cho admin UI
 ├── services/
-│   ├── auth_service.dart            # SharedPreferences session (tenant flow)
-│   ├── database_helper.dart         # SQLite singleton — tất cả CRUD + query thống kê
-│   ├── app_state.dart               # ChangeNotifier wrapping DatabaseHelper — admin state
+│   ├── auth_service.dart            # Firebase Authentication + Firestore sync profile
+│   ├── database_helper.dart         # SQLite singleton — tất cả CRUD + query thống kê (offline data)
+│   ├── app_state.dart               # ChangeNotifier quản lý state Admin, đồng bộ dữ liệu với Firebase User
 │   └── mock_service.dart            # Legacy mock data cho tenant contract/invoice (chưa dọn)
 ├── models/                          # Data models (SQLite-mapped)
 │   ├── user.dart, facility.dart, room.dart, tenant.dart
@@ -97,17 +102,11 @@ lib/
         ├── admin_add_room_page.dart, add_contract_screen.dart, invoice_admin_screen.dart
 ```
 
-## Data Layer — SQLite (Live)
+## Data Layer — Firebase + SQLite (Live)
 
-`DatabaseHelper` singleton (`DatabaseHelper.instance`) — file `lumiere_stay.db`.  
-DB tự seed data khi `onCreate` (2 facilities, 4 rooms, 2 tenants, 2 contracts, 3 invoices, 2 notifications).
-
-**7 bảng:** `users`, `facilities`, `rooms`, `tenants`, `contracts`, `invoices`, `notifications`
-
-**Seed credentials (mật khẩu lưu plain-text — demo only):**
-- Admin: `admin` / `admin123`
-- Tenant 1: `huytenant` / `tenant123`
-- Tenant 2: `khanhtenant` / `tenant123`
+- **Authentication & Profiles (Firebase):** Toàn bộ session đăng nhập, đăng ký bằng Email, Google Sign-In và hồ sơ người dùng (UserModel) được lưu trữ và quản lý tập trung qua **Firebase Authentication** và **Cloud Firestore** (`users` collection).
+- **Business Data (SQLite):** Dữ liệu nghiệp vụ phòng trọ (`facilities`, `rooms`, `tenants`, `contracts`, `invoices`, `notifications`) vẫn được lưu trữ và truy vấn offline-first qua SQLite bằng `DatabaseHelper` singleton (`lumiere_stay.db`).
+- **Seed & Local Compatibility:** Để đảm bảo tính tương thích ngược, DB SQLite vẫn duy trì bảng `users` cục bộ và seed dữ liệu mặc định. Tuy nhiên, các thao tác xác thực thực tế đều đi qua Firebase.
 
 **Quy tắc đồng bộ trạng thái:**
 - Khi tạo contract → room status tự động → `'rented'` (dùng transaction)

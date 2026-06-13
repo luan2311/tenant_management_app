@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tenant_management_app/firebase_options.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 import 'package:tenant_management_app/services/auth_service.dart';
 import 'package:tenant_management_app/views/auth/login_screen.dart';
 import 'package:tenant_management_app/views/tenant_shell.dart';
-import 'package:tenant_management_app/theme/styles.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const LumiereStayApp());
 }
 
@@ -27,7 +32,7 @@ class LumiereStayApp extends StatelessWidget {
   }
 }
 
-/// Kiểm tra phiên SharedPreferences khi khởi động:
+/// Lắng nghe trạng thái xác thực Firebase theo thời gian thực:
 /// - Đã đăng nhập → TenantShell
 /// - Chưa đăng nhập → LoginScreen
 class _SessionGate extends StatelessWidget {
@@ -35,16 +40,18 @@ class _SessionGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: AuthService.isLoggedIn(),
+    return StreamBuilder<User?>(
+      stream: AuthService.authStateChanges(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        // Đang tải trạng thái xác thực
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: kSurface,
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        return snapshot.data! ? const TenantShell() : const LoginScreen();
+        // Đã đăng nhập → TenantShell, chưa → LoginScreen
+        return snapshot.hasData ? const TenantShell() : const LoginScreen();
       },
     );
   }

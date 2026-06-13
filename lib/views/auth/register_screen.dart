@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tenant_management_app/services/auth_service.dart';
 
 // ─── Register Screen ──────────────────────────────────────────────────────────
 
@@ -15,6 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _agreedToTerms = false;
+  bool _isLoading = false;
 
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -643,31 +646,101 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ],
         ),
         child: ElevatedButton(
-          onPressed: _agreedToTerms ? _handleRegister : null,
+          onPressed: (_agreedToTerms && !_isLoading) ? _handleRegister : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             disabledBackgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
             shape: const StadiumBorder(),
           ),
-          child: const Text(
-            'Đăng ký',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: kOnPrimaryFixed,
-            ),
-          ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(kOnPrimaryFixed),
+                  ),
+                )
+              : const Text(
+                  'Đăng ký',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: kOnPrimaryFixed,
+                  ),
+                ),
         ),
       ),
     );
   }
 
-  void _handleRegister() {
-    // TODO: Xử lý logic đăng ký (validate, gọi API, navigate...)
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đang tạo tài khoản...')),
-    );
+  Future<void> _handleRegister() async {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirm = _confirmController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập đầy đủ thông tin')),
+      );
+      return;
+    }
+
+    if (password != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu xác nhận không khớp')),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mật khẩu phải có ít nhất 6 ký tự')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.registerWithEmail(
+        fullName: name,
+        email: email,
+        password: password,
+        phone: phone.isNotEmpty ? phone : null,
+      );
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String message;
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'Email này đã được sử dụng.';
+          break;
+        case 'weak-password':
+          message = 'Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.';
+          break;
+        case 'invalid-email':
+          message = 'Email không hợp lệ.';
+          break;
+        default:
+          message = 'Đăng ký thất bại: ${e.message}';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đăng ký thất bại. Vui lòng thử lại.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   // ─── Floating Status Pill ──────────────────────────────────────────────────

@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tenant_management_app/theme/styles.dart';
 import 'package:tenant_management_app/services/app_state.dart';
 import 'package:tenant_management_app/views/admin/admin_main_layout.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tenant_management_app/services/auth_service.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -32,79 +34,63 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     });
 
     if (_formKey.currentState!.validate()) {
-      final appState = context.read<AppState>();
-      final success = await appState.login(
-        _usernameController.text.trim(),
-        _passwordController.text,
-      );
+      try {
+        // Đăng nhập bằng Firebase Auth
+        final userModel = await AuthService.signInWithEmail(
+          _usernameController.text.trim(),
+          _passwordController.text,
+        );
 
-      if (success) {
         if (!mounted) return;
-        final role = appState.currentUser?.role;
-        if (role == 'admin') {
+
+        if (userModel == null) {
+          setState(() {
+            _errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.';
+          });
+          return;
+        }
+
+        if (userModel.role == 'admin') {
+          // Cập nhật AppState với user đã đăng nhập
+          final appState = context.read<AppState>();
+          await appState.loginWithFirebaseUser(userModel);
+
+          if (!mounted) return;
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const AdminMainLayout()),
           );
         } else {
-          // Tenant module - simple placeholder or mock screen since this is Huy & Khanh's sprint
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => Scaffold(
-                appBar: AppBar(
-                  title: const Text('Tenant Portal'),
-                  backgroundColor: AppColors.sanctuaryDark,
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.logout),
-                      onPressed: () {
-                        appState.logout();
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => const AdminLoginScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                body: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.backgroundStart, AppColors.backgroundEnd],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                  child: Center(
-                    child: GlassmorphicContainer(
-                      margin: const EdgeInsets.all(24),
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.house, size: 64, color: AppColors.sanctuaryDark),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Xin chào, ${appState.currentUser?.fullName}!',
-                            style: AppStyles.title(context, color: AppColors.sanctuaryDark, fontSize: 20),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'Phân hệ Khách Thuê (Tenant) đang phát triển bởi Huy và Khánh. Vui lòng đăng nhập bằng tài khoản "admin" (mật khẩu: "admin123") để kiểm thử 3 Sprints của Luân.',
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
+          // Không phải admin → đăng xuất và hiển thị lỗi
+          await AuthService.clearSession();
+          if (!mounted) return;
+          setState(() {
+            _errorMessage = 'Tài khoản không có quyền Admin.';
+          });
         }
-      } else {
+      } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
+        String message;
+        switch (e.code) {
+          case 'user-not-found':
+            message = 'Không tìm thấy tài khoản.';
+            break;
+          case 'wrong-password':
+          case 'invalid-credential':
+            message = 'Sai mật khẩu.';
+            break;
+          case 'invalid-email':
+            message = 'Email không hợp lệ.';
+            break;
+          default:
+            message = 'Đăng nhập thất bại: ${e.message}';
+        }
         setState(() {
-          _errorMessage = 'Tên đăng nhập hoặc mật khẩu không chính xác.';
+          _errorMessage = message;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = 'Đã xảy ra lỗi. Vui lòng thử lại.';
         });
       }
     }
