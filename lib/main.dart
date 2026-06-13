@@ -3,6 +3,10 @@ import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
 import 'views/Login_screen.dart';
 import 'views/tenant_shell.dart';
+import 'package:provider/provider.dart';
+import 'theme/styles.dart';
+import 'service/app_state.dart';
+import 'view/onboarding_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
