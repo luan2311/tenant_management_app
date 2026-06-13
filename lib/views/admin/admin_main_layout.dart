@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:tenant_management_app/theme/styles.dart';
 import 'package:tenant_management_app/services/app_state.dart';
 import 'admin_home_page.dart';
+import 'admin_contracts_page.dart';
 import 'admin_rooms_page.dart';
 import 'admin_statistics_page.dart';
 import 'admin_tenants_page.dart';
+import 'invoice_admin_screen.dart';
 import 'package:tenant_management_app/views/auth/login_screen.dart';
 
 class AdminMainLayout extends StatefulWidget {
@@ -24,6 +26,8 @@ class _AdminMainLayoutState extends State<AdminMainLayout> {
     const AdminHomePage(),
     const AdminRoomsPage(),
     const AdminTenantsPage(),
+    const AdminContractsPage(),
+    const AdminInvoicesPage(),
     const AdminStatisticsPage(),
     const AdminProfilePage(),
   ];
@@ -44,10 +48,7 @@ class _AdminMainLayoutState extends State<AdminMainLayout> {
       body: EtherealBackground(
         child: SafeArea(
           bottom: false,
-          child: IndexedStack(
-            index: _currentIndex,
-            children: _pages,
-          ),
+          child: IndexedStack(index: _currentIndex, children: _pages),
         ),
       ),
       bottomNavigationBar: ClipRect(
@@ -57,51 +58,65 @@ class _AdminMainLayoutState extends State<AdminMainLayout> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
             color: Colors.white.withOpacity(0.18),
             child: GlassmorphicContainer(
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          borderRadius: 26,
-          opacity: 0.84,
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: AppColors.sanctuaryDark,
-            unselectedItemColor: AppColors.textSecondary.withOpacity(0.5),
-            selectedLabelStyle: AppStyles.caption(context, fontWeight: FontWeight.bold, fontSize: 11),
-            unselectedLabelStyle: AppStyles.caption(context, fontSize: 11),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard_outlined),
-                activeIcon: Icon(Icons.dashboard),
-                label: 'Trang chủ',
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              borderRadius: 26,
+              opacity: 0.84,
+              child: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                type: BottomNavigationBarType.fixed,
+                selectedItemColor: AppColors.sanctuaryDark,
+                unselectedItemColor: AppColors.textSecondary.withOpacity(0.5),
+                selectedLabelStyle: AppStyles.caption(
+                  context,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+                unselectedLabelStyle: AppStyles.caption(context, fontSize: 11),
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.dashboard_outlined),
+                    activeIcon: Icon(Icons.dashboard),
+                    label: 'Trang chủ',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.meeting_room_outlined),
+                    activeIcon: Icon(Icons.meeting_room),
+                    label: 'Phòng',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.people_outline),
+                    activeIcon: Icon(Icons.people),
+                    label: 'Khách',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.description_outlined),
+                    activeIcon: Icon(Icons.description),
+                    label: 'HĐ',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.receipt_long_outlined),
+                    activeIcon: Icon(Icons.receipt_long),
+                    label: 'Hóa đơn',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.bar_chart_outlined),
+                    activeIcon: Icon(Icons.bar_chart),
+                    label: 'Thống kê',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.account_circle_outlined),
+                    activeIcon: Icon(Icons.account_circle),
+                    label: 'Cá nhân',
+                  ),
+                ],
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.meeting_room_outlined),
-                activeIcon: Icon(Icons.meeting_room),
-                label: 'Phòng',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.people_outline),
-                activeIcon: Icon(Icons.people),
-                label: 'Khách',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.bar_chart_outlined),
-                activeIcon: Icon(Icons.bar_chart),
-                label: 'Thống kê',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.account_circle_outlined),
-                activeIcon: Icon(Icons.account_circle),
-                label: 'Cá nhân',
-              ),
-            ],
-          ),
             ),
           ),
         ),
@@ -126,15 +141,16 @@ class AdminProfilePage extends StatelessWidget {
         children: [
           Text(
             'Cá nhân',
-            style: AppStyles.headline(context, color: AppColors.sanctuaryDark, fontWeight: FontWeight.bold),
+            style: AppStyles.headline(
+              context,
+              color: AppColors.sanctuaryDark,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
-          Text(
-            'Quản trị viên Lumiere Stay',
-            style: AppStyles.caption(context),
-          ),
+          Text('Quản trị viên Lumiere Stay', style: AppStyles.caption(context)),
           const SizedBox(height: 24),
-          
+
           GlassmorphicContainer(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -142,12 +158,20 @@ class AdminProfilePage extends StatelessWidget {
                 const CircleAvatar(
                   radius: 40,
                   backgroundColor: AppColors.accent,
-                  child: Icon(Icons.admin_panel_settings, size: 48, color: Colors.white),
+                  child: Icon(
+                    Icons.admin_panel_settings,
+                    size: 48,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   user?.fullName ?? 'N/A',
-                  style: AppStyles.title(context, color: AppColors.sanctuaryDark, fontWeight: FontWeight.bold),
+                  style: AppStyles.title(
+                    context,
+                    color: AppColors.sanctuaryDark,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -157,11 +181,26 @@ class AdminProfilePage extends StatelessWidget {
                 const SizedBox(height: 24),
                 const Divider(color: Colors.white54),
                 const SizedBox(height: 16),
-                _buildInfoRow(context, Icons.phone, 'Số điện thoại', user?.phone ?? 'Chưa cập nhật'),
+                _buildInfoRow(
+                  context,
+                  Icons.phone,
+                  'Số điện thoại',
+                  user?.phone ?? 'Chưa cập nhật',
+                ),
                 const SizedBox(height: 16),
-                _buildInfoRow(context, Icons.email, 'Email', user?.email ?? 'Chưa cập nhật'),
+                _buildInfoRow(
+                  context,
+                  Icons.email,
+                  'Email',
+                  user?.email ?? 'Chưa cập nhật',
+                ),
                 const SizedBox(height: 16),
-                _buildInfoRow(context, Icons.security, 'Vai trò', 'Quản trị hệ thống (Admin)'),
+                _buildInfoRow(
+                  context,
+                  Icons.security,
+                  'Vai trò',
+                  'Quản trị hệ thống (Admin)',
+                ),
               ],
             ),
           ),
@@ -170,16 +209,24 @@ class AdminProfilePage extends StatelessWidget {
             onPressed: () => _showChangePasswordDialog(context, appState),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.sanctuaryDark,
-              side: BorderSide(color: AppColors.sanctuaryDark.withOpacity(0.24)),
+              side: BorderSide(
+                color: AppColors.sanctuaryDark.withOpacity(0.24),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               minimumSize: const Size.fromHeight(50),
               backgroundColor: Colors.white.withOpacity(0.42),
             ),
             icon: const Icon(Icons.lock_reset_rounded),
             label: Text(
               'Đổi mật khẩu',
-              style: AppStyles.body(context, color: AppColors.sanctuaryDark, fontWeight: FontWeight.bold),
+              style: AppStyles.body(
+                context,
+                color: AppColors.sanctuaryDark,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -196,13 +243,19 @@ class AdminProfilePage extends StatelessWidget {
               backgroundColor: AppColors.badgeMaintenanceText,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               minimumSize: const Size.fromHeight(50),
             ),
             icon: const Icon(Icons.logout),
             label: Text(
               'Đăng xuất',
-              style: AppStyles.body(context, color: Colors.white, fontWeight: FontWeight.bold),
+              style: AppStyles.body(
+                context,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(height: 120), // Bottom navigation padding spacing
@@ -211,7 +264,10 @@ class AdminProfilePage extends StatelessWidget {
     );
   }
 
-  Future<void> _showChangePasswordDialog(BuildContext context, AppState appState) async {
+  Future<void> _showChangePasswordDialog(
+    BuildContext context,
+    AppState appState,
+  ) async {
     final formKey = GlobalKey<FormState>();
     final currentController = TextEditingController();
     final newController = TextEditingController();
@@ -221,10 +277,16 @@ class AdminProfilePage extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: Text(
             'Đổi mật khẩu',
-            style: AppStyles.title(dialogContext, color: AppColors.sanctuaryInk, fontWeight: FontWeight.w900),
+            style: AppStyles.title(
+              dialogContext,
+              color: AppColors.sanctuaryInk,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           content: Form(
             key: formKey,
@@ -234,8 +296,12 @@ class AdminProfilePage extends StatelessWidget {
                 TextFormField(
                   controller: currentController,
                   obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Mật khẩu hiện tại'),
-                  validator: (value) => (value == null || value.isEmpty) ? 'Vui lòng nhập mật khẩu hiện tại' : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Mật khẩu hiện tại',
+                  ),
+                  validator: (value) => (value == null || value.isEmpty)
+                      ? 'Vui lòng nhập mật khẩu hiện tại'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -253,8 +319,12 @@ class AdminProfilePage extends StatelessWidget {
                 TextFormField(
                   controller: confirmController,
                   obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Nhập lại mật khẩu mới'),
-                  validator: (value) => value != newController.text ? 'Mật khẩu nhập lại chưa khớp' : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Nhập lại mật khẩu mới',
+                  ),
+                  validator: (value) => value != newController.text
+                      ? 'Mật khẩu nhập lại chưa khớp'
+                      : null,
                 ),
               ],
             ),
@@ -262,7 +332,14 @@ class AdminProfilePage extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text('Hủy', style: AppStyles.body(dialogContext, color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
+              child: Text(
+                'Hủy',
+                style: AppStyles.body(
+                  dialogContext,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
             ElevatedButton.icon(
               onPressed: () async {
@@ -278,10 +355,19 @@ class AdminProfilePage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.sanctuaryDark,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               icon: const Icon(Icons.save_outlined, size: 18),
-              label: Text('Lưu', style: AppStyles.body(dialogContext, color: Colors.white, fontWeight: FontWeight.w900)),
+              label: Text(
+                'Lưu',
+                style: AppStyles.body(
+                  dialogContext,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
           ],
         );
@@ -296,12 +382,21 @@ class AdminProfilePage extends StatelessWidget {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(success ? 'Đã cập nhật mật khẩu admin.' : 'Mật khẩu hiện tại không đúng.'),
+        content: Text(
+          success
+              ? 'Đã cập nhật mật khẩu admin.'
+              : 'Mật khẩu hiện tại không đúng.',
+        ),
       ),
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, IconData icon, String label, String value) {
+  Widget _buildInfoRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Row(
       children: [
         Icon(icon, size: 20, color: AppColors.sanctuaryDark.withOpacity(0.7)),
@@ -309,16 +404,13 @@ class AdminProfilePage extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              label,
-              style: AppStyles.caption(context),
-            ),
+            Text(label, style: AppStyles.caption(context)),
             Text(
               value,
               style: AppStyles.body(context, fontWeight: FontWeight.w600),
             ),
           ],
-        )
+        ),
       ],
     );
   }

@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _submitted = false;
+  String? _customPasswordError;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -42,6 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final value = _passwordController.text;
     if (value.isEmpty) return 'Vui lòng nhập mật khẩu.';
     if (value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự.';
+    if (_customPasswordError != null) return _customPasswordError;
     return null;
   }
 
@@ -332,7 +334,14 @@ class _LoginScreenState extends State<LoginScreen> {
         TextField(
           controller: _passwordController,
           obscureText: _obscurePassword,
-          onChanged: (_) => _refreshSubmittedErrors(),
+          onChanged: (_) {
+            if (_customPasswordError != null) {
+              setState(() {
+                _customPasswordError = null;
+              });
+            }
+            _refreshSubmittedErrors();
+          },
           style: const TextStyle(fontSize: 15, color: kOnSurface),
           decoration: InputDecoration(
             hintText: '••••••••',
@@ -487,7 +496,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    setState(() => _submitted = true);
+    setState(() {
+      _submitted = true;
+      _customPasswordError = null;
+    });
     if (!_isFormValid) return;
 
     final email = _emailController.text.trim();
@@ -507,6 +519,9 @@ class _LoginScreenState extends State<LoginScreen> {
         case 'wrong-password':
         case 'invalid-credential':
           message = 'Sai mật khẩu. Vui lòng thử lại.';
+          setState(() {
+            _customPasswordError = 'Mật khẩu không chính xác.';
+          });
           break;
         case 'invalid-email':
           message = 'Email không hợp lệ.';
@@ -585,7 +600,7 @@ class _LoginScreenState extends State<LoginScreen> {
       height: 52,
       child: OutlinedButton.icon(
         onPressed: _handleGoogleSignIn,
-        icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+        icon: const _GoogleLogo(size: 22),
         label: const Text(
           'Đăng nhập bằng Google',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
@@ -690,5 +705,150 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+}
+
+class _GoogleLogo extends StatelessWidget {
+  const _GoogleLogo({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  static const _paths = [
+    _GoogleLogoPath(
+      color: Color(0xFF4285F4),
+      data:
+          'M17.64 9.20455C17.64 8.56637 17.5827 7.95273 17.4764 7.36364H9V10.845H13.8436C13.635 11.97 13.0009 12.9232 12.0477 13.5614V15.8195H14.9564C16.6582 14.3768 17.64 12.2523 17.64 9.20455Z',
+    ),
+    _GoogleLogoPath(
+      color: Color(0xFF34A853),
+      data:
+          'M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5614C11.2418 14.1014 10.2109 14.4205 9 14.4205C6.65591 14.4205 4.67182 12.8373 3.96409 10.71H0.957275V13.0418C2.43818 15.9832 5.48182 18 9 18Z',
+    ),
+    _GoogleLogoPath(
+      color: Color(0xFFFBBC05),
+      data:
+          'M3.96409 10.71C3.78409 10.17 3.68182 9.59318 3.68182 9C3.68182 8.40682 3.78409 7.83 3.96409 7.29V4.95818H0.957273C0.347727 6.17318 0 7.54773 0 9C0 10.4523 0.347727 11.8268 0.957273 13.0418L3.96409 10.71Z',
+    ),
+    _GoogleLogoPath(
+      color: Color(0xFFEA4335),
+      data:
+          'M9 3.57955C10.3214 3.57955 11.5077 4.03364 12.4405 4.92545L15.0218 2.34409C13.4632 0.891818 11.4259 0 9 0C5.48182 0 2.43818 2.01682 0.957275 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z',
+    ),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = size.shortestSide / 18;
+    canvas.save();
+    canvas.translate(
+      (size.width - size.shortestSide) / 2,
+      (size.height - size.shortestSide) / 2,
+    );
+    canvas.scale(scale);
+
+    for (final logoPath in _paths) {
+      canvas.drawPath(
+        logoPath.path,
+        Paint()
+          ..style = PaintingStyle.fill
+          ..color = logoPath.color,
+      );
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _GoogleLogoPath {
+  const _GoogleLogoPath({required this.color, required this.data});
+
+  final Color color;
+  final String data;
+
+  Path get path => _SvgPathParser(data).parse();
+}
+
+class _SvgPathParser {
+  _SvgPathParser(String data) : _tokens = _tokenize(data);
+
+  final List<String> _tokens;
+  int _index = 0;
+  String? _command;
+  double _x = 0;
+  double _y = 0;
+
+  Path parse() {
+    final path = Path();
+    while (_index < _tokens.length) {
+      final token = _tokens[_index];
+      if (_isCommand(token)) {
+        _command = token;
+        _index++;
+      }
+
+      switch (_command) {
+        case 'M':
+          _x = _number();
+          _y = _number();
+          path.moveTo(_x, _y);
+          _command = 'L';
+          break;
+        case 'L':
+          _x = _number();
+          _y = _number();
+          path.lineTo(_x, _y);
+          break;
+        case 'H':
+          _x = _number();
+          path.lineTo(_x, _y);
+          break;
+        case 'V':
+          _y = _number();
+          path.lineTo(_x, _y);
+          break;
+        case 'C':
+          final x1 = _number();
+          final y1 = _number();
+          final x2 = _number();
+          final y2 = _number();
+          _x = _number();
+          _y = _number();
+          path.cubicTo(x1, y1, x2, y2, _x, _y);
+          break;
+        case 'Z':
+        case 'z':
+          path.close();
+          _command = null;
+          break;
+        default:
+          throw FormatException('Unsupported SVG command: $_command');
+      }
+    }
+    return path;
+  }
+
+  double _number() => double.parse(_tokens[_index++]);
+
+  static bool _isCommand(String token) => RegExp(r'^[A-Za-z]$').hasMatch(token);
+
+  static List<String> _tokenize(String data) {
+    final matches = RegExp(
+      r'[A-Za-z]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?',
+    ).allMatches(data);
+    return matches.map((match) => match.group(0)!).toList();
   }
 }

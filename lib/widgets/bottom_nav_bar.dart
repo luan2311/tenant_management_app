@@ -39,6 +39,11 @@ const _tenantItems = [
     activeIcon: Icons.notifications_rounded,
     label: 'Thông báo',
   ),
+  NavItem(
+    icon: Icons.person_outline_rounded,
+    activeIcon: Icons.person_rounded,
+    label: 'Cá nhân',
+  ),
 ];
 
 const _adminItems = [
@@ -143,6 +148,7 @@ class LumiereBottomNavBar extends StatelessWidget {
                 return _NavTabItem(
                   item: items[i],
                   isActive: active,
+                  isCompact: items.length >= 5,
                   onTap: () => onTap(i),
                 );
               }),
@@ -159,11 +165,13 @@ class LumiereBottomNavBar extends StatelessWidget {
 class _NavTabItem extends StatelessWidget {
   final NavItem item;
   final bool isActive;
+  final bool isCompact;
   final VoidCallback onTap;
 
   const _NavTabItem({
     required this.item,
     required this.isActive,
+    required this.isCompact,
     required this.onTap,
   });
 
@@ -175,7 +183,10 @@ class _NavTabItem extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 8 : 14,
+          vertical: 8,
+        ),
         decoration: isActive
             ? BoxDecoration(
                 color: kPrimary.withValues(alpha: 0.10),
@@ -191,19 +202,22 @@ class _NavTabItem extends StatelessWidget {
                 isActive ? item.activeIcon : item.icon,
                 key: ValueKey(isActive),
                 color: isActive ? kPrimary : kOutline,
-                size: 24,
+                size: isCompact ? 22 : 24,
               ),
             ),
             const SizedBox(height: 3),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
-                fontSize: 10,
-                fontWeight:
-                    isActive ? FontWeight.w700 : FontWeight.w500,
+                fontSize: isCompact ? 9 : 10,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                 color: isActive ? kPrimary : kOutline,
               ),
-              child: Text(item.label),
+              child: Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),

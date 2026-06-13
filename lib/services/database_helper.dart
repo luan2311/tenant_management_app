@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:tenant_management_app/models/user.dart';
 import 'package:tenant_management_app/models/facility.dart';
 import 'package:tenant_management_app/models/room.dart';
@@ -27,8 +29,18 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: _createDB,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        await db.execute('DROP TABLE IF EXISTS notifications');
+        await db.execute('DROP TABLE IF EXISTS invoices');
+        await db.execute('DROP TABLE IF EXISTS contracts');
+        await db.execute('DROP TABLE IF EXISTS tenants');
+        await db.execute('DROP TABLE IF EXISTS rooms');
+        await db.execute('DROP TABLE IF EXISTS facilities');
+        await db.execute('DROP TABLE IF EXISTS users');
+        await _createDB(db, newVersion);
+      },
     );
   }
 
@@ -67,6 +79,9 @@ class DatabaseHelper {
           deposit REAL NOT NULL,
           max_tenants INTEGER DEFAULT 2,
           status TEXT CHECK(status IN ('empty', 'rented', 'maintenance')) DEFAULT 'empty',
+          description TEXT DEFAULT '',
+          image_url TEXT,
+          amenities TEXT,
           FOREIGN KEY(facility_id) REFERENCES facilities(id) ON DELETE CASCADE
       )
     ''');
@@ -186,132 +201,328 @@ class DatabaseHelper {
       'status': 1,
     });
 
-    // Seed rooms
-    int r1 = await db.insert('rooms', {
-      'facility_id': fac1,
-      'room_number': '101',
-      'price': 4500000.0,
-      'deposit': 9000000.0,
-      'max_tenants': 2,
-      'status': 'rented',
-    });
+    final Map<String, int> facilityIds = {
+      'Quan 1': fac1,
+      'Quan 3': fac2,
+    };
 
-    int r2 = await db.insert('rooms', {
-      'facility_id': fac1,
-      'room_number': '102',
-      'price': 4800000.0,
-      'deposit': 9600000.0,
-      'max_tenants': 2,
-      'status': 'empty',
-    });
+    bool seededFromJson = false;
 
-    int r3 = await db.insert('rooms', {
-      'facility_id': fac2,
-      'room_number': '201',
-      'price': 5200000.0,
-      'deposit': 10000000.0,
-      'max_tenants': 3,
-      'status': 'rented',
-    });
+    try {
+      final jsonString = await rootBundle.loadString('docs/data/batdongsan_hcm_rooms_sample.json');
+      final data = json.decode(jsonString);
+      final listings = data['listings'] as List<dynamic>;
 
-    int r4 = await db.insert('rooms', {
-      'facility_id': fac2,
-      'room_number': '202',
-      'price': 5500000.0,
-      'deposit': 11000000.0,
-      'max_tenants': 3,
-      'status': 'maintenance',
-    });
+      // Track room count per district for generating room numbers
+      final Map<String, int> roomCounts = {
+        'Quan 1': 101,
+        'Quan 3': 201,
+      };
 
-    // Seed tenants
-    int t1 = await db.insert('tenants', {
-      'user_id': tenantId1,
-      'full_name': 'Phùng Tuấn Huy',
-      'phone': '0907654321',
-      'cccd': '079123456789',
-      'hometown': 'Đà Nẵng',
-      'start_date': '2026-01-10',
-    });
+      int getStartingRoomNumber(String district) {
+        switch (district) {
+          case 'Quan 1': return 101;
+          case 'Quan 3': return 201;
+          case 'Quan 5': return 501;
+          case 'Quan 7': return 701;
+          case 'Quan 9': return 901;
+          case 'Quan 10': return 1001;
+          case 'Binh Thanh': return 801;
+          case 'Tan Binh': return 1101;
+          case 'Tan Phu': return 1201;
+          case 'Go Vap': return 601;
+          case 'TP Thu Duc':
+          case 'Thu Duc': return 1301;
+          default: return 1401;
+        }
+      }
 
-    int t2 = await db.insert('tenants', {
-      'user_id': tenantId2,
-      'full_name': 'Phạm Gia Khánh',
-      'phone': '0911223344',
-      'cccd': '079987654321',
-      'hometown': 'Cần Thơ',
-      'start_date': '2026-02-15',
-    });
+      String getDisplayDistrictName(String district) {
+        if (district == 'Binh Thanh') return 'Bình Thạnh';
+        if (district == 'Tan Binh') return 'Tân Bình';
+        if (district == 'Tan Phu') return 'Tân Phú';
+        if (district == 'Go Vap') return 'Gò Vấp';
+        if (district == 'TP Thu Duc' || district == 'Thu Duc') return 'Thủ Đức';
+        if (district.startsWith('Quan ')) {
+          return district.replaceFirst('Quan ', 'Quận ');
+        }
+        return district;
+      }
 
-    // Seed contracts
-    int c1 = await db.insert('contracts', {
-      'room_id': r1,
-      'tenant_id': t1,
-      'start_date': '2026-01-10',
-      'end_date': '2027-01-10',
-      'deposit': 9000000.0,
-      'status': 'active',
-    });
+      for (var listing in listings) {
+        final district = listing['district'] as String? ?? 'Quan 1';
+        final title = listing['title'] as String;
+        final price = (listing['price_vnd'] as num).toDouble();
+        final area = (listing['area_m2'] as num).toDouble();
+        final amenities = List<String>.from(listing['amenities'] ?? []);
+        
+        // Get or create facility for the district
+        int facilityId;
+        if (facilityIds.containsKey(district)) {
+          facilityId = facilityIds[district]!;
+        } else {
+          final displayName = getDisplayDistrictName(district);
+          facilityId = await db.insert('facilities', {
+            'name': 'Lumiere Stay - Cơ sở $displayName',
+            'address': 'Đường trung tâm, $displayName, TP. HCM',
+            'status': 1,
+          });
+          facilityIds[district] = facilityId;
+        }
 
-    int c2 = await db.insert('contracts', {
-      'room_id': r3,
-      'tenant_id': t2,
-      'start_date': '2026-02-15',
-      'end_date': '2026-08-15',
-      'deposit': 10000000.0,
-      'status': 'active',
-    });
+        // Generate room number
+        final startNum = getStartingRoomNumber(district);
+        int currentCount = roomCounts[district] ?? startNum;
+        final roomNumber = '$currentCount';
+        roomCounts[district] = currentCount + 1;
+        
+        String status = 'empty';
+        if (roomNumber == '101' && district == 'Quan 1') {
+          status = 'rented';
+        } else if (roomNumber == '201' && district == 'Quan 3') {
+          status = 'rented';
+        } else if (roomNumber == '202' && district == 'Quan 3') {
+          status = 'maintenance';
+        }
 
-    // Seed invoices
-    await db.insert('invoices', {
-      'room_id': r1,
-      'contract_id': c1,
-      'billing_month': '2026-05',
-      'old_electricity': 1200.0,
-      'new_electricity': 1350.0,
-      'old_water': 85.0,
-      'new_water': 95.0,
-      'electricity_price': 3500.0,
-      'water_price': 15000.0,
-      'service_price': 150000.0,
-      'other_price': 50000.0,
-      'total_price': 5375000.0, // 4.5M room + (150*3.5k) + (10*15k) + 150k + 50k
-      'status': 'paid',
-      'payment_date': '2026-05-05',
-    });
+        int roomId = await db.insert('rooms', {
+          'facility_id': facilityId,
+          'room_number': roomNumber,
+          'price': price,
+          'deposit': price * 2,
+          'max_tenants': (district == 'Quan 1') ? 2 : 3,
+          'status': status,
+          'description': 'Diện tích: ${area}m². $title',
+          'image_url': null,
+          'amenities': json.encode(amenities),
+        });
 
-    await db.insert('invoices', {
-      'room_id': r1,
-      'contract_id': c1,
-      'billing_month': '2026-06',
-      'old_electricity': 1350.0,
-      'new_electricity': 1510.0,
-      'old_water': 95.0,
-      'new_water': 107.0,
-      'electricity_price': 3500.0,
-      'water_price': 15000.0,
-      'service_price': 150000.0,
-      'other_price': 0.0,
-      'total_price': 5390000.0, // 4.5M + (160*3.5k) + (12*15k) + 150k
-      'status': 'unpaid',
-      'payment_date': null,
-    });
+        if (roomNumber == '101' && district == 'Quan 1') {
+          int t1 = await db.insert('tenants', {
+            'user_id': tenantId1,
+            'full_name': 'Phùng Tuấn Huy',
+            'phone': '0907654321',
+            'cccd': '079123456789',
+            'hometown': 'Đà Nẵng',
+            'start_date': '2026-01-10',
+          });
+          int c1 = await db.insert('contracts', {
+            'room_id': roomId,
+            'tenant_id': t1,
+            'start_date': '2026-01-10',
+            'end_date': '2027-01-10',
+            'deposit': price * 2,
+            'status': 'active',
+          });
+          await db.insert('invoices', {
+            'room_id': roomId,
+            'contract_id': c1,
+            'billing_month': '2026-05',
+            'old_electricity': 1200.0,
+            'new_electricity': 1350.0,
+            'old_water': 85.0,
+            'new_water': 95.0,
+            'electricity_price': 3500.0,
+            'water_price': 15000.0,
+            'service_price': 150000.0,
+            'other_price': 50000.0,
+            'total_price': price + (150 * 3.5 * 1000) + (10 * 15 * 1000) + 150000 + 50000,
+            'status': 'paid',
+            'payment_date': '2026-05-05',
+          });
+          await db.insert('invoices', {
+            'room_id': roomId,
+            'contract_id': c1,
+            'billing_month': '2026-06',
+            'old_electricity': 1350.0,
+            'new_electricity': 1510.0,
+            'old_water': 95.0,
+            'new_water': 107.0,
+            'electricity_price': 3500.0,
+            'water_price': 15000.0,
+            'service_price': 150000.0,
+            'other_price': 0.0,
+            'total_price': price + (160 * 3.5 * 1000) + (12 * 15 * 1000) + 150000,
+            'status': 'unpaid',
+            'payment_date': null,
+          });
+        } else if (roomNumber == '201' && district == 'Quan 3') {
+          int t2 = await db.insert('tenants', {
+            'user_id': tenantId2,
+            'full_name': 'Phạm Gia Khánh',
+            'phone': '0911223344',
+            'cccd': '079987654321',
+            'hometown': 'Cần Thơ',
+            'start_date': '2026-02-15',
+          });
+          int c2 = await db.insert('contracts', {
+            'room_id': roomId,
+            'tenant_id': t2,
+            'start_date': '2026-02-15',
+            'end_date': '2026-08-15',
+            'deposit': price * 2,
+            'status': 'active',
+          });
+          await db.insert('invoices', {
+            'room_id': roomId,
+            'contract_id': c2,
+            'billing_month': '2026-06',
+            'old_electricity': 500.0,
+            'new_electricity': 620.0,
+            'old_water': 40.0,
+            'new_water': 52.0,
+            'electricity_price': 3500.0,
+            'water_price': 15000.0,
+            'service_price': 200000.0,
+            'other_price': 10000.0,
+            'total_price': price + (120 * 3.5 * 1000) + (12 * 15 * 1000) + 200000 + 10000,
+            'status': 'unpaid',
+            'payment_date': null,
+          });
+        }
+      }
+      seededFromJson = true;
+    } catch (e) {
+      print('Seeding from JSON failed: $e. Using fallback.');
+    }
 
-    await db.insert('invoices', {
-      'room_id': r3,
-      'contract_id': c2,
-      'billing_month': '2026-06',
-      'old_electricity': 500.0,
-      'new_electricity': 620.0,
-      'old_water': 40.0,
-      'new_water': 52.0,
-      'electricity_price': 3500.0,
-      'water_price': 15000.0,
-      'service_price': 200000.0,
-      'other_price': 10000.0,
-      'total_price': 6010000.0, // 5.2M + (120*3.5k) + (12*15k) + 200k + 10k
-      'status': 'unpaid',
-      'payment_date': null,
-    });
+    if (!seededFromJson) {
+      // Fallback seed
+      int r1 = await db.insert('rooms', {
+        'facility_id': fac1,
+        'room_number': '101',
+        'price': 4500000.0,
+        'deposit': 9000000.0,
+        'max_tenants': 2,
+        'status': 'rented',
+        'description': 'Diện tích: 22m². Phòng thoáng mát trung tâm Quận 1.',
+        'image_url': null,
+        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Tủ lạnh']),
+      });
+
+      await db.insert('rooms', {
+        'facility_id': fac1,
+        'room_number': '102',
+        'price': 4800000.0,
+        'deposit': 9600000.0,
+        'max_tenants': 2,
+        'status': 'empty',
+        'description': 'Diện tích: 30m². Căn hộ mini có ban công gần Quận 1.',
+        'image_url': null,
+        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Tủ lạnh', 'Ban công']),
+      });
+
+      int r3 = await db.insert('rooms', {
+        'facility_id': fac2,
+        'room_number': '201',
+        'price': 5200000.0,
+        'deposit': 10000000.0,
+        'max_tenants': 3,
+        'status': 'rented',
+        'description': 'Diện tích: 25m². Phòng studio trung tâm Quận 3.',
+        'image_url': null,
+        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Ban công']),
+      });
+
+      await db.insert('rooms', {
+        'facility_id': fac2,
+        'room_number': '202',
+        'price': 5500000.0,
+        'deposit': 11000000.0,
+        'max_tenants': 3,
+        'status': 'maintenance',
+        'description': 'Diện tích: 20m². Phòng yên tĩnh gần Lê Văn Sỹ Quận 3.',
+        'image_url': null,
+        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi']),
+      });
+
+      int t1 = await db.insert('tenants', {
+        'user_id': tenantId1,
+        'full_name': 'Phùng Tuấn Huy',
+        'phone': '0907654321',
+        'cccd': '079123456789',
+        'hometown': 'Đà Nẵng',
+        'start_date': '2026-01-10',
+      });
+
+      int t2 = await db.insert('tenants', {
+        'user_id': tenantId2,
+        'full_name': 'Phạm Gia Khánh',
+        'phone': '0911223344',
+        'cccd': '079987654321',
+        'hometown': 'Cần Thơ',
+        'start_date': '2026-02-15',
+      });
+
+      int c1 = await db.insert('contracts', {
+        'room_id': r1,
+        'tenant_id': t1,
+        'start_date': '2026-01-10',
+        'end_date': '2027-01-10',
+        'deposit': 9000000.0,
+        'status': 'active',
+      });
+
+      int c2 = await db.insert('contracts', {
+        'room_id': r3,
+        'tenant_id': t2,
+        'start_date': '2026-02-15',
+        'end_date': '2026-08-15',
+        'deposit': 10000000.0,
+        'status': 'active',
+      });
+
+      await db.insert('invoices', {
+        'room_id': r1,
+        'contract_id': c1,
+        'billing_month': '2026-05',
+        'old_electricity': 1200.0,
+        'new_electricity': 1350.0,
+        'old_water': 85.0,
+        'new_water': 95.0,
+        'electricity_price': 3500.0,
+        'water_price': 15000.0,
+        'service_price': 150000.0,
+        'other_price': 50000.0,
+        'total_price': 5375000.0,
+        'status': 'paid',
+        'payment_date': '2026-05-05',
+      });
+
+      await db.insert('invoices', {
+        'room_id': r1,
+        'contract_id': c1,
+        'billing_month': '2026-06',
+        'old_electricity': 1350.0,
+        'new_electricity': 1510.0,
+        'old_water': 95.0,
+        'new_water': 107.0,
+        'electricity_price': 3500.0,
+        'water_price': 15000.0,
+        'service_price': 150000.0,
+        'other_price': 0.0,
+        'total_price': 5390000.0,
+        'status': 'unpaid',
+        'payment_date': null,
+      });
+
+      await db.insert('invoices', {
+        'room_id': r3,
+        'contract_id': c2,
+        'billing_month': '2026-06',
+        'old_electricity': 500.0,
+        'new_electricity': 620.0,
+        'old_water': 40.0,
+        'new_water': 52.0,
+        'electricity_price': 3500.0,
+        'water_price': 15000.0,
+        'service_price': 200000.0,
+        'other_price': 10000.0,
+        'total_price': 6010000.0,
+        'status': 'unpaid',
+        'payment_date': null,
+      });
+    }
 
     // Seed notifications
     await db.insert('notifications', {

@@ -1,7 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 import 'package:tenant_management_app/mock/room_mock_data.dart';
+import 'package:tenant_management_app/models/facility.dart';
+import 'package:tenant_management_app/services/app_state.dart';
 import 'room_detail_screen.dart';
 
 // ─── ExploreScreen — Khám phá phòng trống ────────────────────────────────────
@@ -24,25 +27,50 @@ class _ExploreScreenState extends State<ExploreScreen> {
     Icons.arrow_upward_rounded,
   ];
 
-  List<RoomData> get _filteredRooms {
-    final empty = kMockRooms.where((r) => r.status == 'empty').toList();
-    switch (_selectedFilter) {
-      case 1:
-        return empty.where((r) => r.price < 3000000).toList();
-      case 2:
-        return empty
-            .where((r) => r.price >= 3000000 && r.price <= 5000000)
-            .toList();
-      case 3:
-        return empty.where((r) => r.price > 5000000).toList();
-      default:
-        return empty;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final rooms = _filteredRooms;
+    final appState = context.watch<AppState>();
+    final dbRooms = appState.rooms;
+
+    // Chuyển đổi dữ liệu từ SQLite RoomModel sang RoomData để hiển thị ở trang Khám phá
+    final roomsData = dbRooms.map((room) {
+      final facility = appState.facilities.firstWhere(
+        (f) => f.id == room.facilityId,
+        orElse: () => FacilityModel(name: 'Không rõ cơ sở', address: ''),
+      );
+
+      return RoomData(
+        id: room.id ?? 0,
+        roomNumber: room.roomNumber,
+        facility: facility.name.replaceAll('Lumiere Stay - ', ''),
+        price: room.price,
+        deposit: room.deposit,
+        maxTenants: room.maxTenants,
+        status: room.status,
+        amenities: room.amenities,
+        description: room.description,
+        imageUrl: room.imageUrl,
+      );
+    }).toList();
+
+    final empty = roomsData.where((r) => r.status == 'empty').toList();
+
+    List<RoomData> rooms;
+    switch (_selectedFilter) {
+      case 1:
+        rooms = empty.where((r) => r.price < 3000000).toList();
+        break;
+      case 2:
+        rooms = empty
+            .where((r) => r.price >= 3000000 && r.price <= 5000000)
+            .toList();
+        break;
+      case 3:
+        rooms = empty.where((r) => r.price > 5000000).toList();
+        break;
+      default:
+        rooms = empty;
+    }
     return Scaffold(
       backgroundColor: kSurface,
       body: Stack(

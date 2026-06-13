@@ -52,7 +52,9 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate() || _selectedFacilityId == null) return;
+    if (!_formKey.currentState!.validate() || _selectedFacilityId == null) {
+      return;
+    }
 
     final room = RoomModel(
       id: widget.room?.id,
@@ -62,19 +64,27 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
       deposit: double.parse(_depositController.text.trim()),
       maxTenants: int.parse(_maxTenantsController.text.trim()),
       status: _selectedStatus,
+      description: widget.room?.description ?? '',
+      imageUrl: widget.room?.imageUrl,
+      amenities: widget.room?.amenities ?? const [],
     );
 
+    final appState = context.read<AppState>();
     final success = widget.room == null
-        ? await context.read<AppState>().addNewRoom(room)
-        : await context.read<AppState>().updateRoom(room);
+        ? await appState.addNewRoom(room)
+        : await appState.updateRoom(room);
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           success
-              ? (widget.room == null ? 'Thêm phòng mới thành công!' : 'Cập nhật thông tin phòng thành công!')
-              : (widget.room == null ? 'Thêm phòng mới thất bại. Vui lòng kiểm tra lại.' : 'Cập nhật phòng thất bại. Vui lòng kiểm tra lại.'),
+              ? (widget.room == null
+                    ? 'Thêm phòng mới thành công!'
+                    : 'Cập nhật thông tin phòng thành công!')
+              : (widget.room == null
+                    ? 'Thêm phòng mới thất bại. Vui lòng kiểm tra lại.'
+                    : 'Cập nhật phòng thất bại. Vui lòng kiểm tra lại.'),
         ),
       ),
     );
@@ -116,7 +126,9 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
               ),
               const SizedBox(height: 28),
               GlassmorphicContainer(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(
+                  MediaQuery.sizeOf(context).width < 380 ? 18 : 24,
+                ),
                 borderRadius: 24,
                 opacity: 0.76,
                 child: Form(
@@ -124,39 +136,75 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _SectionTitle(icon: Icons.home_work_outlined, title: 'Thông tin phòng'),
+                      _SectionTitle(
+                        icon: Icons.home_work_outlined,
+                        title: 'Thông tin phòng',
+                      ),
                       const SizedBox(height: 20),
                       DropdownButtonFormField<int>(
-                        value: _selectedFacilityId,
-                        decoration: _inputDecoration('Cơ sở nhà trọ', Icons.business_outlined),
-                        items: facilities.map((fac) => DropdownMenuItem<int>(value: fac.id, child: Text(fac.name))).toList(),
-                        onChanged: (value) => setState(() => _selectedFacilityId = value),
-                        validator: (value) => value == null ? 'Vui lòng chọn cơ sở' : null,
+                        initialValue: _selectedFacilityId,
+                        isExpanded: true,
+                        decoration: _inputDecoration(
+                          'Cơ sở nhà trọ',
+                          Icons.business_outlined,
+                        ),
+                        items: facilities
+                            .map(
+                              (fac) => DropdownMenuItem<int>(
+                                value: fac.id,
+                                child: Text(
+                                  fac.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _selectedFacilityId = value),
+                        validator: (value) =>
+                            value == null ? 'Vui lòng chọn cơ sở' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _roomNumberController,
-                        decoration: _inputDecoration('Số phòng / Tên phòng', Icons.meeting_room_outlined),
-                        validator: (value) => value == null || value.trim().isEmpty ? 'Vui lòng nhập số phòng' : null,
+                        decoration: _inputDecoration(
+                          'Số phòng / Tên phòng',
+                          Icons.meeting_room_outlined,
+                        ),
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                            ? 'Vui lòng nhập số phòng'
+                            : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _priceController,
                         keyboardType: TextInputType.number,
-                        decoration: _inputDecoration('Giá thuê (đ/tháng)', Icons.payments_outlined),
+                        decoration: _inputDecoration(
+                          'Giá thuê (đ/tháng)',
+                          Icons.payments_outlined,
+                        ),
                         validator: _positiveMoneyValidator,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _depositController,
                         keyboardType: TextInputType.number,
-                        decoration: _inputDecoration('Tiền đặt cọc (đ)', Icons.savings_outlined),
+                        decoration: _inputDecoration(
+                          'Tiền đặt cọc (đ)',
+                          Icons.savings_outlined,
+                        ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) return 'Vui lòng nhập tiền đặt cọc';
+                          if (value == null || value.trim().isEmpty)
+                            return 'Vui lòng nhập tiền đặt cọc';
                           final parsed = double.tryParse(value.trim());
-                          if (parsed == null || parsed < 0) return 'Tiền cọc không được là số âm';
-                          final price = double.tryParse(_priceController.text.trim());
-                          if (price != null && parsed >= price) return 'Tiền cọc phải nhỏ hơn tiền thuê';
+                          if (parsed == null || parsed < 0)
+                            return 'Tiền cọc không được là số âm';
+                          final price = double.tryParse(
+                            _priceController.text.trim(),
+                          );
+                          if (price != null && parsed >= price)
+                            return 'Tiền cọc phải nhỏ hơn tiền thuê';
                           return null;
                         },
                       ),
@@ -164,25 +212,44 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
                       TextFormField(
                         controller: _maxTenantsController,
                         keyboardType: TextInputType.number,
-                        decoration: _inputDecoration('Số người ở tối đa', Icons.people_alt_outlined),
+                        decoration: _inputDecoration(
+                          'Số người ở tối đa',
+                          Icons.people_alt_outlined,
+                        ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) return 'Vui lòng nhập số người ở tối đa';
+                          if (value == null || value.trim().isEmpty)
+                            return 'Vui lòng nhập số người ở tối đa';
                           final parsed = int.tryParse(value);
-                          if (parsed == null || parsed <= 0) return 'Số người ở tối đa phải lớn hơn 0';
+                          if (parsed == null || parsed <= 0)
+                            return 'Số người ở tối đa phải lớn hơn 0';
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: _selectedStatus,
-                        decoration: _inputDecoration('Trạng thái phòng', Icons.tune_outlined),
+                        initialValue: _selectedStatus,
+                        isExpanded: true,
+                        decoration: _inputDecoration(
+                          'Trạng thái phòng',
+                          Icons.tune_outlined,
+                        ),
                         items: const [
-                          DropdownMenuItem(value: 'empty', child: Text('Trống')),
-                          DropdownMenuItem(value: 'rented', child: Text('Đang thuê')),
-                          DropdownMenuItem(value: 'maintenance', child: Text('Bảo trì')),
+                          DropdownMenuItem(
+                            value: 'empty',
+                            child: Text('Trống'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'rented',
+                            child: Text('Đang thuê'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'maintenance',
+                            child: Text('Bảo trì'),
+                          ),
                         ],
                         onChanged: (value) {
-                          if (value != null) setState(() => _selectedStatus = value);
+                          if (value != null)
+                            setState(() => _selectedStatus = value);
                         },
                       ),
                       const SizedBox(height: 28),
@@ -192,15 +259,32 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
                           backgroundColor: AppColors.sanctuaryDark,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
                           elevation: 0,
                         ),
                         icon: appState.isLoading
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : Icon(isEditing ? Icons.save_outlined : Icons.add_home_outlined),
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                isEditing
+                                    ? Icons.save_outlined
+                                    : Icons.add_home_outlined,
+                              ),
                         label: Text(
                           isEditing ? 'Lưu thay đổi' : 'Thêm phòng',
-                          style: AppStyles.body(context, color: Colors.white, fontWeight: FontWeight.w900),
+                          style: AppStyles.body(
+                            context,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ],
@@ -227,18 +311,27 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
       prefixIcon: Icon(icon, color: AppColors.sanctuaryDark, size: 20),
       filled: true,
       fillColor: Colors.white.withOpacity(0.58),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide(color: Colors.white.withOpacity(0.72)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: AppColors.sanctuaryDark, width: 1.4),
+        borderSide: const BorderSide(
+          color: AppColors.sanctuaryDark,
+          width: 1.4,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: AppColors.badgeMaintenanceText, width: 1.2),
+        borderSide: const BorderSide(
+          color: AppColors.badgeMaintenanceText,
+          width: 1.2,
+        ),
       ),
     );
   }
@@ -260,7 +353,18 @@ class _SectionTitle extends StatelessWidget {
           child: Icon(icon, color: AppColors.sanctuaryDark, size: 19),
         ),
         const SizedBox(width: 12),
-        Text(title, style: AppStyles.title(context, color: AppColors.sanctuaryInk, fontWeight: FontWeight.w900)),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppStyles.title(
+              context,
+              color: AppColors.sanctuaryInk,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
       ],
     );
   }

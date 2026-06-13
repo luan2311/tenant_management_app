@@ -4,6 +4,7 @@ import 'package:tenant_management_app/widgets/bottom_nav_bar.dart';
 import 'customer/home_page_screen.dart';
 import 'customer/explore_screen.dart';
 import 'customer/notification_screen.dart';
+import 'customer/profile_screen.dart';
 import 'tenant/my_room_screen.dart';
 
 /// Shell quản lý Bottom Navigation cho phân hệ Khách thuê.
@@ -32,6 +33,7 @@ class _TenantShellState extends State<TenantShell> {
           const ExploreScreen(),
           const MyRoomScreen(),
           const NotificationScreen(),
+          const ProfileScreen(),
         ],
       ),
       bottomNavigationBar: LumiereBottomNavBar.tenant(

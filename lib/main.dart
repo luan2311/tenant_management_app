@@ -12,9 +12,7 @@ import 'package:tenant_management_app/views/admin/admin_main_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const LumiereStayApp());
 }
 
@@ -29,18 +27,13 @@ class LumiereStayApp extends StatelessWidget {
         title: 'Lumiere Stay',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
-        routes: {
-          '/home': (_) => const TenantShell(),
-        },
+        routes: {'/home': (_) => const TenantShell()},
         home: const _SessionGate(),
       ),
     );
   }
 }
 
-/// Lắng nghe trạng thái xác thực Firebase theo thời gian thực:
-/// - Đã đăng nhập → Phân vai trò để chuyển đến AdminMainLayout hoặc TenantShell
-/// - Chưa đăng nhập → LoginScreen
 class _SessionGate extends StatelessWidget {
   const _SessionGate();
 
@@ -49,7 +42,6 @@ class _SessionGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: AuthService.authStateChanges(),
       builder: (context, snapshot) {
-        // Đang tải trạng thái xác thực
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: kSurface,
@@ -62,31 +54,58 @@ class _SessionGate extends StatelessWidget {
           return const LoginScreen();
         }
 
-        // Đã đăng nhập -> Đọc thông tin chi tiết của user (bao gồm role) từ Firestore/AppState
-        return FutureBuilder<void>(
-          future: context.read<AppState>().checkAutoLogin(),
-          builder: (context, autoLoginSnapshot) {
-            if (autoLoginSnapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                backgroundColor: kSurface,
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
+        return _RoleGate(firebaseUid: user.uid);
+      },
+    );
+  }
+}
 
-            final currentUser = context.watch<AppState>().currentUser;
-            if (currentUser == null) {
-              // Có user Firebase nhưng chưa kịp load profile từ Firestore
-              return const Scaffold(
-                backgroundColor: kSurface,
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
+class _RoleGate extends StatefulWidget {
+  const _RoleGate({required this.firebaseUid});
 
-            return currentUser.role == 'admin'
-                ? const AdminMainLayout()
-                : const TenantShell();
-          },
-        );
+  final String firebaseUid;
+
+  @override
+  State<_RoleGate> createState() => _RoleGateState();
+}
+
+class _RoleGateState extends State<_RoleGate> {
+  late Future<void> _loadProfileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileFuture = context.read<AppState>().checkAutoLogin();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RoleGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.firebaseUid != widget.firebaseUid) {
+      _loadProfileFuture = context.read<AppState>().checkAutoLogin();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _loadProfileFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: kSurface,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final currentUser = context.watch<AppState>().currentUser;
+        if (currentUser == null) {
+          return const LoginScreen();
+        }
+
+        return currentUser.role == 'admin'
+            ? const AdminMainLayout()
+            : const TenantShell();
       },
     );
   }
