@@ -13,7 +13,10 @@ class InvoiceAdminScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         title: const Text('Hóa đơn - Lumiere Stay', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16)),
-        leading: const Icon(Icons.arrow_back, color: Colors.black87),
+        leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.black87),
+        onPressed: () => Navigator.maybePop(context),
+      ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:tenant_management_app/services/app_state.dart';
 import 'package:tenant_management_app/theme/styles.dart';
 import 'admin_add_room_page.dart';
+import 'add_contract_screen.dart';
+import 'invoice_admin_screen.dart';
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
@@ -77,9 +79,9 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminAddRoomPage())),
               ),
               const SizedBox(width: 12),
-              _QuickAction(icon: Icons.assignment_add, label: 'Hợp đồng', onTap: () => _showSprintMessage(context, 'Hợp đồng thuộc Sprint của Khánh.')),
+              _QuickAction(icon: Icons.assignment_add, label: 'Hợp đồng', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddContractScreen()))),
               const SizedBox(width: 12),
-              _QuickAction(icon: Icons.receipt_long_outlined, label: 'Hóa đơn', onTap: () => _showSprintMessage(context, 'Hóa đơn thuộc Sprint của Khánh.')),
+              _QuickAction(icon: Icons.receipt_long_outlined, label: 'Hóa đơn', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InvoiceAdminScreen()))),
             ],
           ),
           const SizedBox(height: 28),
@@ -195,9 +197,6 @@ class _RevenueRangeSelector extends StatelessWidget {
   }
 }
 
-void _showSprintMessage(BuildContext context, String message) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-}
 
 class _NotificationButton extends StatelessWidget {
   final AppState appState;

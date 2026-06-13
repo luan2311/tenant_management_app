@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'my_invoice_screen.dart';
+import 'contract_detail_screen.dart';
 
 class MyRoomScreen extends StatelessWidget {
   const MyRoomScreen({super.key});
@@ -30,7 +32,41 @@ class MyRoomScreen extends StatelessWidget {
               // Thẻ hiển thị đơn giá Tiện ích
               _buildUtilitiesCard(),
               const SizedBox(height: 16),
-              
+
+              // Nút điều hướng nhanh
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyInvoiceScreen())),
+                      icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                      label: const Text('Hóa đơn', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF2E6486),
+                        side: const BorderSide(color: Color(0xFF2E6486)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContractDetailScreen())),
+                      icon: const Icon(Icons.assignment_outlined, size: 18),
+                      label: const Text('Hợp đồng', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF2E6486),
+                        side: const BorderSide(color: Color(0xFF2E6486)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
               // Khu vực Người ở chung
               const Text('Người ở chung', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 10),
