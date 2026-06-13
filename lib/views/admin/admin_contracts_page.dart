@@ -344,7 +344,7 @@ class _SummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassmorphicContainer(
-      height: 136,
+      height: 148,
       padding: const EdgeInsets.all(14),
       borderRadius: 20,
       opacity: 0.72,
@@ -362,7 +362,7 @@ class _SummaryTile extends StatelessWidget {
             style: AppStyles.headline(
               context,
               color: AppColors.sanctuaryInk,
-              fontSize: 28,
+              fontSize: 26,
               fontWeight: FontWeight.w900,
             ),
           ),

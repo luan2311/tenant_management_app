@@ -15,6 +15,15 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
+  // Default premium room images to assign to rooms
+  static const List<String> defaultRoomImages = [
+    'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=600&q=80',
+  ];
+
   DatabaseHelper._init();
 
   Future<Database> get database async {
@@ -29,7 +38,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
         await db.execute('DROP TABLE IF EXISTS notifications');
@@ -303,7 +312,7 @@ class DatabaseHelper {
           'max_tenants': (district == 'Quan 1') ? 2 : 3,
           'status': status,
           'description': 'Diện tích: ${area}m². $title',
-          'image_url': null,
+          'image_url': defaultRoomImages[(int.tryParse(roomNumber) ?? 0) % defaultRoomImages.length],
           'amenities': json.encode(amenities),
         });
 
@@ -413,7 +422,7 @@ class DatabaseHelper {
         'max_tenants': 2,
         'status': 'rented',
         'description': 'Diện tích: 22m². Phòng thoáng mát trung tâm Quận 1.',
-        'image_url': null,
+        'image_url': defaultRoomImages[0],
         'amenities': json.encode([
           'Điều hoà',
           'WC riêng',
@@ -431,7 +440,7 @@ class DatabaseHelper {
         'max_tenants': 2,
         'status': 'empty',
         'description': 'Diện tích: 30m². Căn hộ mini có ban công gần Quận 1.',
-        'image_url': null,
+        'image_url': defaultRoomImages[1],
         'amenities': json.encode([
           'Điều hoà',
           'WC riêng',
@@ -450,7 +459,7 @@ class DatabaseHelper {
         'max_tenants': 3,
         'status': 'rented',
         'description': 'Diện tích: 25m². Phòng studio trung tâm Quận 3.',
-        'image_url': null,
+        'image_url': defaultRoomImages[2],
         'amenities': json.encode([
           'Điều hoà',
           'WC riêng',
@@ -468,7 +477,7 @@ class DatabaseHelper {
         'max_tenants': 3,
         'status': 'maintenance',
         'description': 'Diện tích: 20m². Phòng yên tĩnh gần Lê Văn Sỹ Quận 3.',
-        'image_url': null,
+        'image_url': defaultRoomImages[3],
         'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi']),
       });
 
@@ -701,7 +710,12 @@ class DatabaseHelper {
 
   Future<int> insertRoom(RoomModel room) async {
     final db = await instance.database;
-    return await db.insert('rooms', room.toMap());
+    final map = room.toMap();
+    if (map['image_url'] == null || (map['image_url'] as String).isEmpty) {
+      final random = DateTime.now().millisecondsSinceEpoch;
+      map['image_url'] = defaultRoomImages[random % defaultRoomImages.length];
+    }
+    return await db.insert('rooms', map);
   }
 
   Future<int> updateRoom(RoomModel room) async {

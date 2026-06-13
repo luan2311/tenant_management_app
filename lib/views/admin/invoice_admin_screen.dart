@@ -367,8 +367,8 @@ class _MoneySummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassmorphicContainer(
-      height: 126,
-      padding: const EdgeInsets.all(16),
+      height: 148,
+      padding: const EdgeInsets.all(14),
       borderRadius: 20,
       opacity: 0.72,
       child: Column(
@@ -379,18 +379,21 @@ class _MoneySummaryTile extends StatelessWidget {
             backgroundColor: color.withValues(alpha: 0.12),
             child: Icon(icon, color: color, size: 20),
           ),
-          const Spacer(),
+          const SizedBox(height: 10),
           Text(
             _formatCompactMoney(amount),
             style: AppStyles.headline(
               context,
               color: AppColors.sanctuaryInk,
-              fontSize: 28,
+              fontSize: 26,
               fontWeight: FontWeight.w900,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: AppStyles.caption(
               context,
               fontWeight: FontWeight.w800,

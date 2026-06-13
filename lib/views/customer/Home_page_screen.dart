@@ -110,9 +110,11 @@ class _AmbientBackground extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              top: -80, left: -80,
+              top: -80,
+              left: -80,
               child: Container(
-                width: 300, height: 300,
+                width: 300,
+                height: 300,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: kPrimaryFixed.withValues(alpha: 0.3),
@@ -123,7 +125,8 @@ class _AmbientBackground extends StatelessWidget {
               top: MediaQuery.of(context).size.height * 0.33,
               right: -80,
               child: Container(
-                width: 260, height: 260,
+                width: 260,
+                height: 260,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: kTertiaryContainer.withValues(alpha: 0.2),
@@ -153,29 +156,33 @@ class _GreetingSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Chào buổi sáng,',
-                  style: TextStyle(
-                    color: kOnSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                    letterSpacing: 0.5,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Chào buổi sáng,',
+                    style: TextStyle(
+                      color: kOnSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  name.isEmpty ? 'Khách thuê' : name,
-                  style: const TextStyle(
-                    color: kOnSurface,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 24,
-                    letterSpacing: -0.5,
+                  const SizedBox(height: 2),
+                  Text(
+                    name.isEmpty ? 'Khách thuê' : name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: kOnSurface,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 24,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             if (onViewAll != null)
               GestureDetector(
@@ -211,9 +218,7 @@ class _RoomCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: kOutlineVariant.withValues(alpha: 0.15),
-            ),
+            border: Border.all(color: kOutlineVariant.withValues(alpha: 0.15)),
             boxShadow: [
               BoxShadow(
                 color: Colors.white.withValues(alpha: 0.8),
@@ -230,9 +235,11 @@ class _RoomCard extends StatelessWidget {
           child: Stack(
             children: [
               Positioned(
-                right: -20, top: -20,
+                right: -20,
+                top: -20,
                 child: Container(
-                  width: 100, height: 100,
+                  width: 100,
+                  height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: kPrimaryFixed.withValues(alpha: 0.4),
@@ -271,7 +278,9 @@ class _RoomCard extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: kPrimaryFixed,
                           borderRadius: BorderRadius.circular(999),
@@ -289,8 +298,10 @@ class _RoomCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  _infoRow(Icons.calendar_month_outlined,
-                      'Hợp đồng: 12/05/2024 – 12/05/2025'),
+                  _infoRow(
+                    Icons.calendar_month_outlined,
+                    'Hợp đồng: 12/05/2024 – 12/05/2025',
+                  ),
                   const SizedBox(height: 12),
                   _infoRow(Icons.group_outlined, '2 người ở'),
                 ],
@@ -321,9 +332,9 @@ class _RoomCard extends StatelessWidget {
 }
 
 // ─── Unpaid Bill Card ─────────────────────────────────────────────────────────
-const _kErrorContainer    = Color(0xFFFA746F);
-const _kOnErrorContainer  = Color(0xFF6E0A12);
-const _kErrorDim          = Color(0xFF67040D);
+const _kErrorContainer = Color(0xFFFA746F);
+const _kOnErrorContainer = Color(0xFF6E0A12);
+const _kErrorDim = Color(0xFF67040D);
 
 class _UnpaidBillCard extends StatelessWidget {
   const _UnpaidBillCard();
@@ -356,7 +367,8 @@ class _UnpaidBillCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 44, height: 44,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
@@ -458,8 +470,8 @@ class _ShortcutButton extends StatefulWidget {
     required this.onTap,
   });
 
-  final IconData     icon;
-  final String       label;
+  final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
   @override
@@ -472,8 +484,8 @@ class _ShortcutButtonState extends State<_ShortcutButton> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown:   (_) => setState(() => _pressed = true),
-      onTapUp:     (_) => setState(() => _pressed = false),
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
       onTap: widget.onTap,
       child: AnimatedContainer(
@@ -498,7 +510,8 @@ class _ShortcutButtonState extends State<_ShortcutButton> {
         child: Column(
           children: [
             Container(
-              width: 52, height: 52,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
@@ -586,10 +599,10 @@ class _NotificationItem extends StatelessWidget {
   });
 
   final IconData icon;
-  final Color    iconColor;
-  final String   title;
-  final String   body;
-  final String   time;
+  final Color iconColor;
+  final String title;
+  final String body;
+  final String time;
 
   @override
   Widget build(BuildContext context) {

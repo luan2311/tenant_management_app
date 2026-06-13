@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "804871641062-pcfm7bgeqg74shrg14eneonvjq8gff9k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tenant_management_app",
+            "certificate_hash": "d8b35ff58311ce955a7778b268dabe1419e4029c"
+          }
+        },
+        {
           "client_id": "804871641062-8a5e65imsi9j1ea43ojub6ku739bat4c.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +37,13 @@
             {
               "client_id": "804871641062-8a5e65imsi9j1ea43ojub6ku739bat4c.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "804871641062-nhlikp3fa431eqcvrt9ngmsmondhpcta.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.tenantManagementApp"
+              }
             }
           ]
         }
