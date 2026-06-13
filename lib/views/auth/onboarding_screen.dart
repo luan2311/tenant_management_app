@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../theme/styles.dart';
-import '../service/app_state.dart';
-import 'login_screen.dart';
+import 'package:tenant_management_app/theme/styles.dart';
+import 'package:tenant_management_app/services/app_state.dart';
+import 'admin_login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -179,7 +179,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       onPressed: () {
                         // Skip onboarding
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const AdminLoginScreen(),
+                          ),
                         );
                       },
                       child: Text(
@@ -200,7 +202,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           );
                         } else {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const AdminLoginScreen(),
+                            ),
                           );
                         }
                       },

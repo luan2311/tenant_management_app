@@ -31,9 +31,9 @@ lib/
 ├── views/
 │   ├── tenant_shell.dart           ← Shell quản lý Bottom Navigation (4 tabs)
 │   └── customer/
-│       ├── Home_page_screen.dart   ← HUY.3.1 HomeScreen
-│       ├── Explore_screen.dart     ← HUY.3.2 ExploreScreen
-│       └── Rome_detail_screen.dart ← HUY.3.3 RoomDetailScreen
+│       ├── home_page_screen.dart   ← HUY.3.1 HomeScreen
+│       ├── explore_screen.dart     ← HUY.3.2 ExploreScreen
+│       └── room_detail_screen.dart ← HUY.3.3 RoomDetailScreen
 └── theme/
     └── app_theme.dart              ← Thêm kSurfaceContainerLow
 ```
@@ -45,7 +45,7 @@ lib/
 
 ## Chi tiết từng màn hình
 
-### HUY.3.1 — HomeScreen (`customer/Home_page_screen.dart`)
+### HUY.3.1 — HomeScreen (`customer/home_page_screen.dart`)
 
 **Mô tả:** Trang chủ cho khách thuê đang có hợp đồng, hiển thị thông tin phòng hiện tại và thông báo mới.
 
@@ -67,7 +67,7 @@ class HomeScreen extends StatelessWidget {
 
 ---
 
-### HUY.3.2 — ExploreScreen (`customer/Explore_screen.dart`)
+### HUY.3.2 — ExploreScreen (`customer/explore_screen.dart`)
 
 **Mô tả:** Màn hình khám phá danh sách phòng trống, có tìm kiếm và lọc theo giá.
 
@@ -93,7 +93,7 @@ class HomeScreen extends StatelessWidget {
 
 ---
 
-### HUY.3.3 — RoomDetailScreen (`customer/Rome_detail_screen.dart`)
+### HUY.3.3 — RoomDetailScreen (`customer/room_detail_screen.dart`)
 
 **Mô tả:** Màn hình chi tiết một phòng cụ thể, nhận `RoomData` từ màn hình trước.
 

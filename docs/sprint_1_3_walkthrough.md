@@ -10,26 +10,26 @@ Dưới đây là sơ đồ tóm tắt các tệp tin đã tạo và cập nhậ
   - [lib/theme/styles.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/theme/styles.dart): Chứa bộ màu sắc thiết kế, Container hiệu ứng kính mờ (Glassmorphism) và bóng kép (Neumorphism).
 
 - **Mô hình Dữ liệu (Models):**
-  - [lib/model/user.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/model/user.dart)
-  - [lib/model/facility.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/model/facility.dart)
-  - [lib/model/room.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/model/room.dart)
-  - [lib/model/tenant.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/model/tenant.dart)
-  - [lib/model/contract.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/model/contract.dart)
-  - [lib/model/invoice.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/model/invoice.dart)
-  - [lib/model/notification.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/model/notification.dart)
+  - [lib/models/user.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/models/user.dart)
+  - [lib/models/facility.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/models/facility.dart)
+  - [lib/models/room.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/models/room.dart)
+  - [lib/models/tenant.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/models/tenant.dart)
+  - [lib/models/contract.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/models/contract.dart)
+  - [lib/models/invoice.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/models/invoice.dart)
+  - [lib/models/notification.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/models/notification.dart)
 
 - **Trực quan hóa & Nghiệp vụ (Service & State Manager):**
-  - [lib/service/database_helper.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/service/database_helper.dart): Khởi tạo 7 bảng dữ liệu SQLite, cài đặt tài khoản admin/tenant mặc định và các chỉ số phòng/hóa đơn mẫu để kiểm thử. Chứa các hàm xử lý tìm kiếm không dấu và quét hạn hợp đồng tự động.
-  - [lib/service/app_state.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/service/app_state.dart): State Management sử dụng `provider` để xử lý đăng nhập, đồng bộ dữ liệu trực tiếp từ SQLite và lọc danh sách tức thì trên giao diện.
+  - [lib/services/database_helper.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/services/database_helper.dart): Khởi tạo 7 bảng dữ liệu SQLite, cài đặt tài khoản admin/tenant mặc định và các chỉ số phòng/hóa đơn mẫu để kiểm thử. Chứa các hàm xử lý tìm kiếm không dấu và quét hạn hợp đồng tự động.
+  - [lib/services/app_state.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/services/app_state.dart): State Management sử dụng `provider` để xử lý đăng nhập, đồng bộ dữ liệu trực tiếp từ SQLite và lọc danh sách tức thì trên giao diện.
 
 - **Giao diện Người dùng (UI Views):**
-  - [lib/view/onboarding_screen.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/view/onboarding_screen.dart): Giao diện Splash / giới thiệu mượt mà tích hợp Glassmorphism.
-  - [lib/view/login_screen.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/view/login_screen.dart): Màn hình đăng nhập mờ ảo sang trọng.
-  - [lib/view/admin/admin_main_layout.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/view/admin/admin_main_layout.dart): Layout điều hướng chính (Bottom Navigation Bar) cho Admin bao gồm cả màn hình **Cá nhân (Profile - Sprint 4)**.
-  - [lib/view/admin/admin_home_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/view/admin/admin_home_page.dart): Dashboard Admin hiển thị 4 chỉ số (Tổng phòng, Phòng trống, Phòng đã thuê, Hóa đơn nợ), biểu đồ tròn (Pie Chart) biểu diễn tỉ lệ phòng và danh sách khách nợ tiền phòng.
-  - [lib/view/admin/admin_rooms_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/view/admin/admin_rooms_page.dart): Quản lý danh sách phòng kèm bộ lọc trực quan theo Cơ sở trọ và Trạng thái phòng.
-  - [lib/view/admin/admin_add_room_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/view/admin/admin_add_room_page.dart): Form thêm phòng mới có kiểm tra dữ liệu đầu vào chặt chẽ.
-  - [lib/view/admin/admin_tenants_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/view/admin/admin_tenants_page.dart): Quản lý khách thuê kèm thanh tìm kiếm nhanh (họ tên/SĐT) không phân biệt dấu tiếng Việt.
+  - [lib/views/auth/onboarding_screen.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/views/auth/onboarding_screen.dart): Giao diện Splash / giới thiệu mượt mà tích hợp Glassmorphism.
+  - [lib/views/auth/admin_login_screen.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/views/auth/admin_login_screen.dart): Màn hình đăng nhập mờ ảo sang trọng.
+  - [lib/views/admin/admin_main_layout.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/views/admin/admin_main_layout.dart): Layout điều hướng chính (Bottom Navigation Bar) cho Admin bao gồm cả màn hình **Cá nhân (Profile - Sprint 4)**.
+  - [lib/views/admin/admin_home_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/views/admin/admin_home_page.dart): Dashboard Admin hiển thị 4 chỉ số (Tổng phòng, Phòng trống, Phòng đã thuê, Hóa đơn nợ), biểu đồ tròn (Pie Chart) biểu diễn tỉ lệ phòng và danh sách khách nợ tiền phòng.
+  - [lib/views/admin/admin_rooms_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/views/admin/admin_rooms_page.dart): Quản lý danh sách phòng kèm bộ lọc trực quan theo Cơ sở trọ và Trạng thái phòng.
+  - [lib/views/admin/admin_add_room_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/views/admin/admin_add_room_page.dart): Form thêm phòng mới có kiểm tra dữ liệu đầu vào chặt chẽ.
+  - [lib/views/admin/admin_tenants_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/views/admin/admin_tenants_page.dart): Quản lý khách thuê kèm thanh tìm kiếm nhanh (họ tên/SĐT) không phân biệt dấu tiếng Việt.
 
 ---
 

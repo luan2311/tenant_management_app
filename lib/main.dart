@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'theme/app_theme.dart';
-import 'services/auth_service.dart';
-import 'views/Login_screen.dart';
-import 'views/tenant_shell.dart';
-import 'package:provider/provider.dart';
-import 'theme/styles.dart';
-import 'service/app_state.dart';
-import 'view/onboarding_screen.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:tenant_management_app/services/auth_service.dart';
+import 'package:tenant_management_app/views/auth/login_screen.dart';
+import 'package:tenant_management_app/views/tenant_shell.dart';
+import 'package:tenant_management_app/theme/styles.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

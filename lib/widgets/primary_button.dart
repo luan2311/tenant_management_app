@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
 
 /// Nút hành động chính với gradient, dùng chung toàn app.
 class PrimaryButton extends StatelessWidget {

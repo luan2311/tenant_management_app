@@ -1,8 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../service/app_state.dart';
-import '../../theme/styles.dart';
+import 'package:tenant_management_app/services/app_state.dart';
+import 'package:tenant_management_app/theme/styles.dart';
 
 class AdminStatisticsPage extends StatelessWidget {
   const AdminStatisticsPage({super.key});

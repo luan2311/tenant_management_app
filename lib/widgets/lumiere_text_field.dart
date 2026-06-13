@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
 
 /// Input dạng Glassmorphism — dùng trên nền tối/gradient (màn hình Đăng nhập).
 class GlassTextField extends StatelessWidget {

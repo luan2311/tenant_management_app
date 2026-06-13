@@ -128,7 +128,7 @@ class AddContractScreen extends StatelessWidget {
             keyboardType: isNumber ? TextInputType.number : TextInputType.text,
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(color: Colors.black25, fontSize: 13),
+              hintStyle: const TextStyle(color: Colors.black26, fontSize: 13),
               suffixIcon: isDate ? const Icon(Icons.calendar_month, color: Colors.black38, size: 20) : null,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               filled: true,
@@ -153,7 +153,7 @@ class AddContractScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(color: const Color(0xFFEDF2F6), borderRadius: BorderRadius.circular(12)),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(hint, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 13, color: Colors.black87)),
                 const Icon(Icons.keyboard_arrow_down, color: Colors.black38),

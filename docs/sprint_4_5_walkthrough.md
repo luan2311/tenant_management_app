@@ -4,12 +4,12 @@ Tài liệu này ghi lại phần hoàn thiện Sprint 4 và Sprint 5 của LUAN
 
 ## Sprint 4: Hồ sơ Admin & SQLite Query nâng cao
 
-- [x] **Task LUAN.4.1:** Hoàn thiện màn hình **Cá nhân - Admin** trong [lib/view/admin/admin_main_layout.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/view/admin/admin_main_layout.dart).
+- [x] **Task LUAN.4.1:** Hoàn thiện màn hình **Cá nhân - Admin** trong [lib/views/admin/admin_main_layout.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/views/admin/admin_main_layout.dart).
   - Hiển thị thông tin tài khoản admin.
   - Bổ sung nút **Đổi mật khẩu** với kiểm tra mật khẩu hiện tại.
   - Giữ nút **Đăng xuất** và luồng quay về màn hình đăng nhập.
 
-- [x] **Task LUAN.4.2:** Bổ sung query SQLite nâng cao trong [lib/service/database_helper.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/service/database_helper.dart).
+- [x] **Task LUAN.4.2:** Bổ sung query SQLite nâng cao trong [lib/services/database_helper.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/services/database_helper.dart).
   - `getRevenueByMonth()`: tổng doanh thu đã thanh toán theo tháng.
   - `getRevenueSummary({billingMonth})`: tổng tiền đã thu và còn nợ theo tháng.
   - `getDebtorList({billingMonth})`: danh sách khách thuê còn nợ, có thể lọc theo tháng.
@@ -20,11 +20,11 @@ Tài liệu này ghi lại phần hoàn thiện Sprint 4 và Sprint 5 của LUAN
   - `updateContract()`.
   - `terminateContractWithRoomSync()`.
   - `updateInvoice()`.
-  - Các hàm tương ứng được expose qua [lib/service/app_state.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/service/app_state.dart).
+  - Các hàm tương ứng được expose qua [lib/services/app_state.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/services/app_state.dart).
 
 ## Sprint 5: Thống kê doanh thu đồ họa
 
-- [x] **Task LUAN.5.1:** Thêm màn hình **Thống kê - Admin** tại [lib/view/admin/admin_statistics_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/view/admin/admin_statistics_page.dart).
+- [x] **Task LUAN.5.1:** Thêm màn hình **Thống kê - Admin** tại [lib/views/admin/admin_statistics_page.dart](file:///C:/code/LTDD/DoAn/tenant_management_app/lib/views/admin/admin_statistics_page.dart).
   - Dùng `fl_chart` để vẽ biểu đồ cột doanh thu thực nhận theo tháng.
   - Thêm tab **Thống kê** vào bottom navigation của Admin.
 

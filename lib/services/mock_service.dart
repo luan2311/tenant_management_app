@@ -1,5 +1,5 @@
-import '../models/contract_model.dart';
-import '../models/invoice_model.dart';
+import 'package:tenant_management_app/models/mock/contract_model.dart';
+import 'package:tenant_management_app/models/mock/invoice_model.dart';
 
 class MockService {
   // Giả lập danh sách Hợp đồng để bàn giao cho tầng View
@@ -9,12 +9,20 @@ class MockService {
       ContractModel(
         id: 1, roomId: 1, tenantId: 10, 
         startDate: '2026-01-01', endDate: '2026-12-31', 
-        deposit: 3000000.0, status: 'active'
+        deposit: 3000000.0,
+        initialElectricity: 1200.0,
+        initialWater: 450.0,
+        contractPdfPath: '',
+        status: 'active'
       ),
       ContractModel(
         id: 2, roomId: 2, tenantId: 11, 
         startDate: '2025-06-01', endDate: '2026-06-01', 
-        deposit: 2500000.0, status: 'expired'
+        deposit: 2500000.0,
+        initialElectricity: 980.0,
+        initialWater: 300.0,
+        contractPdfPath: '',
+        status: 'expired'
       ),
     ];
   }

@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
-import '../../services/auth_service.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:tenant_management_app/services/auth_service.dart';
 
 // ─── HomeScreen — Trang chủ khách thuê ───────────────────────────────────────
 // HUY.3.1 · Sprint 3

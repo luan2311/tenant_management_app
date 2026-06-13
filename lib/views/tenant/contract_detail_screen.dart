@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class ContractDetailScreen extends StatelessWidget {
@@ -11,9 +10,17 @@ class ContractDetailScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const Icon(Icons.arrow_back, color: Colors.black87),
-        title: const Text('Hợp đồng của bạn', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18)),
-        subtitle: const Text('Phòng 302 • Khu A', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 12, color: Colors.black45)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Hợp đồng của bạn', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Phòng 302 • Khu A', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 12, color: Colors.black45)),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

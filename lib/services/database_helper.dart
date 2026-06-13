@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import '../model/user.dart';
-import '../model/facility.dart';
-import '../model/room.dart';
-import '../model/tenant.dart';
-import '../model/contract.dart';
-import '../model/invoice.dart';
-import '../model/notification.dart';
+import 'package:tenant_management_app/models/user.dart';
+import 'package:tenant_management_app/models/facility.dart';
+import 'package:tenant_management_app/models/room.dart';
+import 'package:tenant_management_app/models/tenant.dart';
+import 'package:tenant_management_app/models/contract.dart';
+import 'package:tenant_management_app/models/invoice.dart';
+import 'package:tenant_management_app/models/notification.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();

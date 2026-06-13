@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../theme/styles.dart';
-import '../service/app_state.dart';
-import 'admin/admin_main_layout.dart';
+import 'package:tenant_management_app/theme/styles.dart';
+import 'package:tenant_management_app/services/app_state.dart';
+import 'package:tenant_management_app/views/admin/admin_main_layout.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class AdminLoginScreen extends StatefulWidget {
+  const AdminLoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -59,7 +59,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         appState.logout();
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const AdminLoginScreen(),
+                          ),
                         );
                       },
                     ),

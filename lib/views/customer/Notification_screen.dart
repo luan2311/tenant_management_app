@@ -1,7 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
 
 // HUY.4.2 · Sprint 4 — Trung tâm thông báo, hiển thị dưới dạng tab trong TenantShell.
 

@@ -29,9 +29,9 @@ lib/
 ├── views/
 │   ├── tenant_shell.dart                    ← Nối tab "Thông báo" → NotificationScreen
 │   └── customer/
-│       ├── Rental_request_screen.dart       ← HUY.4.1 RentalRequestScreen (mới)
-│       ├── Notification_screen.dart         ← HUY.4.2 NotificationScreen (mới)
-│       └── Rome_detail_screen.dart          ← Nối nút "Gửi yêu cầu thuê" → RentalRequestScreen
+│       ├── rental_request_screen.dart       ← HUY.4.1 RentalRequestScreen (mới)
+│       ├── notification_screen.dart         ← HUY.4.2 NotificationScreen (mới)
+│       └── room_detail_screen.dart          ← Nối nút "Gửi yêu cầu thuê" → RentalRequestScreen
 ```
 
 > Quy ước thư mục giữ nguyên: 2 màn hình mới đều thuộc phía khách thuê → đặt trong `views/customer/`.
@@ -40,7 +40,7 @@ lib/
 
 ## Chi tiết từng màn hình
 
-### HUY.4.1 — RentalRequestScreen (`customer/Rental_request_screen.dart`)
+### HUY.4.1 — RentalRequestScreen (`customer/rental_request_screen.dart`)
 
 **Mô tả:** Form gửi yêu cầu thuê cho 1 phòng cụ thể, hiển thị dạng bottom sheet nổi lên trên `RoomDetailScreen`.
 
@@ -68,7 +68,7 @@ class RentalRequestScreen extends StatefulWidget {
 
 ---
 
-### HUY.4.2 — NotificationScreen (`customer/Notification_screen.dart`)
+### HUY.4.2 — NotificationScreen (`customer/notification_screen.dart`)
 
 **Mô tả:** Trung tâm thông báo cho khách thuê, hiển thị dưới dạng 1 tab trong `TenantShell` (không tự vẽ Scaffold/bottom nav riêng — dùng chung `LumiereBottomNavBar.tenant()` của shell).
 
@@ -105,10 +105,10 @@ Cả 2 màn hình ban đầu là code prototype độc lập (tự có `main()`/
 |---|---|
 | Bỏ standalone app wrapper | Xoá `main()`, `MyApp`, `AppColors` ở cả 2 file |
 | Map màu theo `app_theme.dart` | `AppColors.X` → `kPrimary`, `kSurface`, `kOnSurface`, `kSurfaceContainerHigh`, `kPrimaryFixed`, `kSecondaryContainer`, `kTertiaryContainer`... |
-| Thêm local `_k` constants | Cho tông màu chưa có trong theme (`_kError`, `_kErrorContainer`, `_kSecondary`, `_kTertiary`...) — theo đúng tiền lệ ở `Home_page_screen.dart` (`_kErrorContainer`) |
+| Thêm local `_k` constants | Cho tông màu chưa có trong theme (`_kError`, `_kErrorContainer`, `_kSecondary`, `_kTertiary`...) — theo đúng tiền lệ ở `home_page_screen.dart` (`_kErrorContainer`) |
 | `.withOpacity()` → `.withValues(alpha:)` | Thay toàn bộ theo quy ước chống deprecation trong `CLAUDE.md` |
 | Bỏ Scaffold/bottom-nav thừa trong NotificationScreen | Vì đã chạy như 1 tab trong `IndexedStack` của `TenantShell` — xoá luôn 3 class thừa `_NavItem`, `_GlassBottomNav`, `_NavItemWidget` |
-| Giữ quy ước "private widget per screen" | Không ép refactor sang `GlassCard`/`PrimaryButton` dùng chung — giữ `_GradientButton`, `_GlassPanel` riêng theo đúng tiền lệ `Rome_detail_screen.dart` |
+| Giữ quy ước "private widget per screen" | Không ép refactor sang `GlassCard`/`PrimaryButton` dùng chung — giữ `_GradientButton`, `_GlassPanel` riêng theo đúng tiền lệ `room_detail_screen.dart` |
 
 ---
 
@@ -127,8 +127,8 @@ TenantShell (IndexedStack 4 tabs)
 ```
 
 **Thay đổi cụ thể:**
-- `Rome_detail_screen.dart`: thêm `import 'Rental_request_screen.dart';`, sửa `onTap` của nút "Gửi yêu cầu thuê" trong `_BottomActionBar` từ SnackBar placeholder → `Navigator.push(MaterialPageRoute(builder: (_) => RentalRequestScreen(room: room)))`. Đồng thời thêm field `room` vào `_BottomActionBar` (vì đây là `StatelessWidget` riêng, không truy cập được `widget.room` của `_RoomDetailScreenState`).
-- `tenant_shell.dart`: import `customer/Notification_screen.dart`, thay `_PlaceholderTab('Thông báo', Icons.notifications_rounded, 'Sprint 4 — Tuấn Huy')` ở tab index 3 bằng `const NotificationScreen()`.
+- `room_detail_screen.dart`: thêm `import 'rental_request_screen.dart';`, sửa `onTap` của nút "Gửi yêu cầu thuê" trong `_BottomActionBar` từ SnackBar placeholder → `Navigator.push(MaterialPageRoute(builder: (_) => RentalRequestScreen(room: room)))`. Đồng thời thêm field `room` vào `_BottomActionBar` (vì đây là `StatelessWidget` riêng, không truy cập được `widget.room` của `_RoomDetailScreenState`).
+- `tenant_shell.dart`: import `customer/notification_screen.dart`, thay `_PlaceholderTab('Thông báo', Icons.notifications_rounded, 'Sprint 4 — Tuấn Huy')` ở tab index 3 bằng `const NotificationScreen()`.
 
 ---
 

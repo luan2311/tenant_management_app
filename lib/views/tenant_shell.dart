@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../widgets/bottom_nav_bar.dart';
-import 'customer/Home_page_screen.dart';
-import 'customer/Explore_screen.dart';
-import 'customer/Notification_screen.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:tenant_management_app/widgets/bottom_nav_bar.dart';
+import 'customer/home_page_screen.dart';
+import 'customer/explore_screen.dart';
+import 'customer/notification_screen.dart';
 
 /// Shell quản lý Bottom Navigation cho phân hệ Khách thuê.
 /// Tab 0: Trang chủ, Tab 1: Khám phá, Tab 2: Phòng của tôi, Tab 3: Thông báo.

@@ -1,8 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
-import '../../mock/room_mock_data.dart';
-import 'Rome_detail_screen.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:tenant_management_app/mock/room_mock_data.dart';
+import 'room_detail_screen.dart';
 
 // ─── ExploreScreen — Khám phá phòng trống ────────────────────────────────────
 // HUY.3.2 · Sprint 3

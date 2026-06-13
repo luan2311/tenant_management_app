@@ -1,8 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
-import '../../mock/room_mock_data.dart';
-import 'Rental_request_screen.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:tenant_management_app/mock/room_mock_data.dart';
+import 'rental_request_screen.dart';
 
 // ─── RoomDetailScreen — Chi tiết phòng ───────────────────────────────────────
 // HUY.3.3 · Sprint 3  (filename giữ nguyên để tránh thay đổi import)

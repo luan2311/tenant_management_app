@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../services/auth_service.dart';
-import 'Register_screen.dart';
-import 'Forgot_password_screen.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:tenant_management_app/services/auth_service.dart';
+import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 // ─── Main Login Screen ────────────────────────────────────────────────────────
 

@@ -1,8 +1,8 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
-import '../../mock/room_mock_data.dart';
+import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:tenant_management_app/mock/room_mock_data.dart';
 
 // ─── RentalRequestScreen — Yêu cầu thuê ──────────────────────────────────────
 // HUY.4.1 · Sprint 4

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../model/room.dart';
-import '../../service/app_state.dart';
-import '../../theme/styles.dart';
+import 'package:tenant_management_app/models/room.dart';
+import 'package:tenant_management_app/services/app_state.dart';
+import 'package:tenant_management_app/theme/styles.dart';
 
 class AdminAddRoomPage extends StatefulWidget {
   final RoomModel? room;

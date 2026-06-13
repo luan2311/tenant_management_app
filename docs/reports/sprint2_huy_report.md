@@ -19,7 +19,7 @@
 
 ### Task HUY.2.1 — Màn hình Đăng nhập ✅
 
-**File:** `lib/views/Login_screen.dart`
+**File:** `lib/views/auth/login_screen.dart`
 
 Màn hình `LoginScreen` được xây dựng theo kiến trúc 3 layer (Stack):
 
@@ -56,7 +56,7 @@ home: const LoginScreen(),
 
 ### Task HUY.2.2 — Màn hình Đăng ký ✅
 
-**File:** `lib/views/Register_screen.dart`
+**File:** `lib/views/auth/register_screen.dart`
 
 Màn hình `RegisterScreen` hỗ trợ **Responsive Layout**:
 
@@ -102,7 +102,7 @@ Navigator.push(
 
 ### Task HUY.2.3 — Màn hình Quên Mật Khẩu ✅
 
-**File:** `lib/views/Forgot_password_screen.dart`
+**File:** `lib/views/auth/forgot_password_screen.dart`
 
 Màn hình `ForgotPasswordScreen` gồm 3 layer:
 
@@ -205,9 +205,9 @@ lib/
 ├── services/
 │   └── auth_service.dart              ✅ HUY.2.4 — SharedPreferences session
 ├── views/
-│   ├── Login_screen.dart              ✅ HUY.2.1 + HUY.2.4 — Đăng nhập + lưu phiên
-│   ├── Register_screen.dart           ✅ HUY.2.2 — Màn hình đăng ký
-│   └── Forgot_password_screen.dart    ✅ HUY.2.3 — Màn hình quên mật khẩu
+│   ├── login_screen.dart              ✅ HUY.2.1 + HUY.2.4 — Đăng nhập + lưu phiên
+│   ├── register_screen.dart           ✅ HUY.2.2 — Màn hình đăng ký
+│   └── forgot_password_screen.dart    ✅ HUY.2.3 — Màn hình quên mật khẩu
 └── widgets/
     ├── glass_card.dart                ✅ Sprint 1
     ├── primary_button.dart            ✅ Sprint 1

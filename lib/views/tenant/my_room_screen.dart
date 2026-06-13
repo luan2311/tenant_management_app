@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class MyRoomScreen extends StatelessWidget {
@@ -62,7 +61,7 @@ class MyRoomScreen extends StatelessWidget {
           border: Border.all(color: Colors.white.withOpacity(0.6)),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.between,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +69,7 @@ class MyRoomScreen extends StatelessWidget {
                 const Text('SỐ PHÒNG', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 11, color: Colors.black45)),
                 const Text('P.402', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
                 const SizedBox(height: 4),
-                Text('Giá thuê / tháng: 4.500.000đ', style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 12, color: Colors.black87)),
+                const Text('Giá thuê / tháng: 4.500.000đ', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 12, color: Colors.black87)),
               ],
             ),
             Column(
