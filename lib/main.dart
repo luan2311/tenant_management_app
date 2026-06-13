@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tenant_management_app/services/app_state.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
-import 'package:tenant_management_app/services/auth_service.dart';
+import 'package:tenant_management_app/views/admin/admin_main_layout.dart';
 import 'package:tenant_management_app/views/auth/login_screen.dart';
 import 'package:tenant_management_app/views/tenant_shell.dart';
-import 'package:tenant_management_app/theme/styles.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,36 +16,55 @@ class LumiereStayApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Lumiere Stay',
-      debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
-      routes: {
-        '/home': (_) => const TenantShell(),
-      },
-      home: const _SessionGate(),
+    return ChangeNotifierProvider(
+      create: (_) => AppState(),
+      child: MaterialApp(
+        title: 'Lumiere Stay',
+        debugShowCheckedModeBanner: false,
+        theme: buildAppTheme(),
+        routes: {
+          '/home': (_) => const TenantShell(),
+        },
+        home: const _SessionGate(),
+      ),
     );
   }
 }
 
-/// Kiểm tra phiên SharedPreferences khi khởi động:
-/// - Đã đăng nhập → TenantShell
-/// - Chưa đăng nhập → LoginScreen
-class _SessionGate extends StatelessWidget {
+/// Kiem tra phien SQLite khi khoi dong.
+class _SessionGate extends StatefulWidget {
   const _SessionGate();
 
   @override
+  State<_SessionGate> createState() => _SessionGateState();
+}
+
+class _SessionGateState extends State<_SessionGate> {
+  late final Future<void> _autoLoginFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoLoginFuture = context.read<AppState>().checkAutoLogin();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: AuthService.isLoggedIn(),
+    return FutureBuilder<void>(
+      future: _autoLoginFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
             backgroundColor: kSurface,
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        return snapshot.data! ? const TenantShell() : const LoginScreen();
+
+        final currentUser = context.watch<AppState>().currentUser;
+        if (currentUser == null) return const LoginScreen();
+        return currentUser.role == 'admin'
+            ? const AdminMainLayout()
+            : const TenantShell();
       },
     );
   }

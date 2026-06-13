@@ -8,7 +8,7 @@ import 'admin_home_page.dart';
 import 'admin_rooms_page.dart';
 import 'admin_statistics_page.dart';
 import 'admin_tenants_page.dart';
-import 'package:tenant_management_app/views/auth/admin_login_screen.dart';
+import 'package:tenant_management_app/views/auth/login_screen.dart';
 
 class AdminMainLayout extends StatefulWidget {
   const AdminMainLayout({super.key});
@@ -188,7 +188,7 @@ class AdminProfilePage extends StatelessWidget {
               await appState.logout();
               if (context.mounted) {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
                 );
               }
             },

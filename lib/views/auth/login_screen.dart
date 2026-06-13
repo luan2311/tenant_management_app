@@ -490,8 +490,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildBiometricButton(
-            icon: Icons.fingerprint_rounded, onTap: () {}),
+        _buildGoogleLoginButton(onTap: () {
+          _handleGoogleLogin();
+        }),
         const SizedBox(width: 24),
         _buildBiometricButton(
             icon: Icons.face_retouching_natural_rounded, onTap: () {}),
@@ -499,8 +500,38 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _handleGoogleLogin() async {
+    // TODO: Implement Google sign-in flow.
+  }
+
+  Widget _buildGoogleLoginButton({
+    required VoidCallback onTap,
+  }) {
+    return _buildQuickLoginButton(
+      onTap: onTap,
+      child: const Text(
+        'G',
+        style: TextStyle(
+          color: Color(0xFF4285F4),
+          fontSize: 30,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   Widget _buildBiometricButton({
     required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return _buildQuickLoginButton(
+      onTap: onTap,
+      child: Icon(icon, color: kPrimary, size: 30),
+    );
+  }
+
+  Widget _buildQuickLoginButton({
+    required Widget child,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -524,7 +555,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-            child: Icon(icon, color: kPrimary, size: 30),
+            child: Center(child: child),
           ),
         ),
       ),
