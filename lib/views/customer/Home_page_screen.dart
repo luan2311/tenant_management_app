@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 import 'package:tenant_management_app/services/auth_service.dart';
 import 'package:tenant_management_app/services/app_state.dart';
+import 'package:tenant_management_app/views/tenant/contract_detail_screen.dart';
+import 'package:tenant_management_app/views/tenant/my_invoice_screen.dart';
 
 // ─── HomeScreen — Trang chủ khách thuê ───────────────────────────────────────
 // HUY.3.1 · Sprint 3
@@ -489,7 +491,7 @@ class _UnpaidBillCard extends StatelessWidget {
     final priceStr = '${totalPrice.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}đ';
 
     return GestureDetector(
-      onTap: () {},
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyInvoiceScreen())),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -594,7 +596,7 @@ class _QuickShortcuts extends StatelessWidget {
           child: _ShortcutButton(
             icon: Icons.description_outlined,
             label: 'Xem hợp đồng',
-            onTap: () {},
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContractDetailScreen())),
           ),
         ),
         const SizedBox(width: 16),
@@ -602,7 +604,7 @@ class _QuickShortcuts extends StatelessWidget {
           child: _ShortcutButton(
             icon: Icons.history_rounded,
             label: 'Lịch sử hóa đơn',
-            onTap: () {},
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyInvoiceScreen())),
           ),
         ),
       ],

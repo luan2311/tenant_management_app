@@ -18,6 +18,8 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   int _selectedFilter = 0;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   static const _filters = ['Tất cả', 'Dưới 3tr', '3 – 5tr', 'Trên 5tr'];
   static const _filterIcons = [
@@ -26,6 +28,23 @@ class _ExploreScreenState extends State<ExploreScreen> {
     Icons.attach_money_rounded,
     Icons.arrow_upward_rounded,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch and sync latest room data upon screen loading
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AppState>().refreshAllData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,51 +90,86 @@ class _ExploreScreenState extends State<ExploreScreen> {
       default:
         rooms = empty;
     }
+
+    // Filter rooms by search query (room number, facility name, description, amenities)
+    if (_searchQuery.isNotEmpty) {
+      final queryLower = _searchQuery.toLowerCase();
+      rooms = rooms.where((r) {
+        final matchRoomNumber = r.roomNumber.toLowerCase().contains(queryLower);
+        final matchFacility = r.facility.toLowerCase().contains(queryLower);
+        final matchDescription = r.description.toLowerCase().contains(queryLower);
+        final matchAmenities = r.amenities.any((a) => a.toLowerCase().contains(queryLower));
+        return matchRoomNumber || matchFacility || matchDescription || matchAmenities;
+      }).toList();
+    }
+
     return Scaffold(
       backgroundColor: kSurface,
       body: Stack(
         children: [
           const _AmbientBackground(),
-          CustomScrollView(
-            slivers: [
-              _buildAppBar(),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    const _SearchBar(),
-                    const SizedBox(height: 12),
-                    _FilterChips(
-                      selected: _selectedFilter,
-                      filters: _filters,
-                      icons: _filterIcons,
-                      onSelected: (i) => setState(() => _selectedFilter = i),
-                    ),
-                    const SizedBox(height: 24),
-                    _RoomListHeader(count: rooms.length),
-                    const SizedBox(height: 16),
-                    if (rooms.isEmpty)
-                      _EmptyState()
-                    else
-                      ...List.generate(
-                        rooms.length,
-                        (i) => Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _RoomCard(
-                            room: rooms[i],
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      RoomDetailScreen(room: rooms[i])),
+          RefreshIndicator(
+            onRefresh: () => appState.refreshAllData(),
+            color: kPrimary,
+            backgroundColor: Colors.white,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              slivers: [
+                _buildAppBar(),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      _SearchBar(
+                        controller: _searchController,
+                        onChanged: (val) {
+                          setState(() {
+                            _searchQuery = val;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _FilterChips(
+                        selected: _selectedFilter,
+                        filters: _filters,
+                        icons: _filterIcons,
+                        onSelected: (i) => setState(() => _selectedFilter = i),
+                      ),
+                      const SizedBox(height: 24),
+                      _RoomListHeader(count: rooms.length),
+                      const SizedBox(height: 16),
+                      if (appState.isLoading && dbRooms.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 60),
+                          child: Center(
+                            child: CircularProgressIndicator(color: kPrimary),
+                          ),
+                        )
+                      else if (rooms.isEmpty)
+                        _EmptyState()
+                      else
+                        ...List.generate(
+                          rooms.length,
+                          (i) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _RoomCard(
+                              room: rooms[i],
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        RoomDetailScreen(room: rooms[i])),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ]),
+                    ]),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -216,7 +270,13 @@ class _AmbientBackground extends StatelessWidget {
 
 // ─── Search Bar ───────────────────────────────────────────────────────────────
 class _SearchBar extends StatelessWidget {
-  const _SearchBar();
+  const _SearchBar({
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -252,6 +312,8 @@ class _SearchBar extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: TextField(
+                  controller: controller,
+                  onChanged: onChanged,
                   decoration: const InputDecoration(
                     hintText: 'Tìm kiếm phòng, khu vực...',
                     hintStyle: TextStyle(

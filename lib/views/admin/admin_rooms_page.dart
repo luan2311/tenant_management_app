@@ -6,66 +6,93 @@ import 'package:tenant_management_app/services/app_state.dart';
 import 'package:tenant_management_app/theme/styles.dart';
 import 'admin_add_room_page.dart';
 
-class AdminRoomsPage extends StatelessWidget {
+class AdminRoomsPage extends StatefulWidget {
   const AdminRoomsPage({super.key});
+
+  @override
+  State<AdminRoomsPage> createState() => _AdminRoomsPageState();
+}
+
+class _AdminRoomsPageState extends State<AdminRoomsPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AppState>().refreshAllData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final facilities = appState.facilities;
     final rooms = appState.filteredRooms;
+    final isLoading = appState.isLoading;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 120),
-      children: [
-        SanctuaryHeader(
-          title: 'Quản lý phòng',
-          subtitle: 'Theo dõi phòng trống, đang thuê và bảo trì theo từng cơ sở.',
-          trailing: SoftIconButton(
-            icon: Icons.add_rounded,
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminAddRoomPage())),
-          ),
-        ),
-        const SizedBox(height: 22),
-        _FacilityFilters(appState: appState, facilities: facilities),
-        const SizedBox(height: 12),
-        _StatusFilters(appState: appState),
-        const SizedBox(height: 22),
-        if (rooms.isEmpty)
-          GlassmorphicContainer(
-            height: 240,
-            borderRadius: 22,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.meeting_room_outlined, size: 54, color: AppColors.textSecondary.withOpacity(0.72)),
-                const SizedBox(height: 14),
-                Text('Không tìm thấy phòng phù hợp.', style: AppStyles.body(context, color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
-              ],
+    return RefreshIndicator(
+      onRefresh: () => appState.refreshAllData(),
+      color: AppColors.sanctuaryDark,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 18, 24, 120),
+        children: [
+          SanctuaryHeader(
+            title: 'Quản lý phòng',
+            subtitle: 'Theo dõi phòng trống, đang thuê và bảo trì theo từng cơ sở.',
+            trailing: SoftIconButton(
+              icon: Icons.add_rounded,
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminAddRoomPage())),
             ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: rooms.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-              mainAxisExtent: 208,
-            ),
-            itemBuilder: (context, index) {
-              final room = rooms[index];
-              final facility = facilities.firstWhere(
-                (f) => f.id == room.facilityId,
-                orElse: () => FacilityModel(name: 'Không rõ cơ sở', address: ''),
-              );
-              return _RoomCard(room: room, facility: facility);
-            },
           ),
-      ],
+          const SizedBox(height: 22),
+          _FacilityFilters(appState: appState, facilities: facilities),
+          const SizedBox(height: 12),
+          _StatusFilters(appState: appState),
+          const SizedBox(height: 22),
+          if (isLoading && rooms.isEmpty)
+            GlassmorphicContainer(
+              height: 240,
+              borderRadius: 22,
+              padding: const EdgeInsets.all(24),
+              child: const Center(
+                child: CircularProgressIndicator(color: AppColors.sanctuaryDark),
+              ),
+            )
+          else if (rooms.isEmpty)
+            GlassmorphicContainer(
+              height: 240,
+              borderRadius: 22,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.meeting_room_outlined, size: 54, color: AppColors.textSecondary.withValues(alpha: 0.72)),
+                  const SizedBox(height: 14),
+                  Text('Không tìm thấy phòng phù hợp.', style: AppStyles.body(context, color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
+                ],
+              ),
+            )
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: rooms.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                mainAxisExtent: 208,
+              ),
+              itemBuilder: (context, index) {
+                final room = rooms[index];
+                final facility = facilities.firstWhere(
+                  (f) => f.id == room.facilityId,
+                  orElse: () => FacilityModel(name: 'Không rõ cơ sở', address: ''),
+                );
+                return _RoomCard(room: room, facility: facility);
+              },
+            ),
+        ],
+      ),
     );
   }
 }

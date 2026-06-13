@@ -107,7 +107,10 @@ class AppState extends ChangeNotifier {
   // --- Data Loading & Synchronization ---
   Future<void> refreshAllData() async {
     if (_currentUser == null) return;
-    
+
+    // Đảm bảo bảng rooms luôn có dữ liệu mẫu (an toàn khi gọi nhiều lần)
+    await _db.checkAndSeedDatabase();
+
     // Sync current user profile from Firebase to local SQLite
     await _db.syncUserToSQLite(_currentUser!);
 

@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
         await db.execute('DROP TABLE IF EXISTS rental_requests');
@@ -616,6 +616,150 @@ class DatabaseHelper {
       'created_at': '2026-06-01 08:00:00',
       'is_read': 0,
     });
+  }
+
+  /// Kiểm tra bảng rooms có trống không, nếu trống thì seed từ JSON.
+  /// An toàn khi gọi nhiều lần — bỏ qua nếu đã có dữ liệu.
+  Future<void> checkAndSeedDatabase() async {
+    final db = await database;
+
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM rooms'),
+        ) ??
+        0;
+    if (count > 0) return;
+
+    // Lấy hoặc tạo facility mặc định
+    Future<int> getOrCreate(String name, String address) async {
+      final rows = await db.query('facilities', columns: ['id'], where: 'name = ?', whereArgs: [name]);
+      if (rows.isNotEmpty) return rows.first['id'] as int;
+      return db.insert('facilities', {'name': name, 'address': address, 'status': 1});
+    }
+
+    final Map<String, int> facilityIds = {
+      'Quan 1': await getOrCreate(
+        'Lumiere Stay - Cơ sở Quận 1',
+        '123 Nguyễn Thị Minh Khai, Bến Thành, Quận 1, TP. HCM',
+      ),
+      'Quan 3': await getOrCreate(
+        'Lumiere Stay - Cơ sở Quận 3',
+        '456 Lê Văn Sỹ, Phường 14, Quận 3, TP. HCM',
+      ),
+    };
+
+    bool seeded = false;
+    try {
+      final jsonString = await rootBundle.loadString('docs/data/batdongsan_hcm_rooms_sample.json');
+      final data = json.decode(jsonString);
+      final listings = data['listings'] as List<dynamic>;
+
+      final Map<String, int> roomCounts = {'Quan 1': 101, 'Quan 3': 201};
+
+      int _startNum(String d) {
+        switch (d) {
+          case 'Quan 1': return 101;
+          case 'Quan 3': return 201;
+          case 'Quan 5': return 501;
+          case 'Quan 7': return 701;
+          case 'Quan 9': return 901;
+          case 'Quan 10': return 1001;
+          case 'Binh Thanh': return 801;
+          case 'Tan Binh': return 1101;
+          case 'Tan Phu': return 1201;
+          case 'Go Vap': return 601;
+          case 'TP Thu Duc': case 'Thu Duc': return 1301;
+          default: return 1401;
+        }
+      }
+
+      String _displayDistrict(String d) {
+        if (d == 'Binh Thanh') return 'Bình Thạnh';
+        if (d == 'Tan Binh') return 'Tân Bình';
+        if (d == 'Tan Phu') return 'Tân Phú';
+        if (d == 'Go Vap') return 'Gò Vấp';
+        if (d == 'TP Thu Duc' || d == 'Thu Duc') return 'Thủ Đức';
+        if (d.startsWith('Quan ')) return d.replaceFirst('Quan ', 'Quận ');
+        return d;
+      }
+
+      for (var listing in listings) {
+        final district = listing['district'] as String? ?? 'Quan 1';
+        final title = listing['title'] as String;
+        final price = (listing['price_vnd'] as num).toDouble();
+        final area = (listing['area_m2'] as num).toDouble();
+        final amenities = List<String>.from(listing['amenities'] ?? []);
+
+        int facilityId;
+        if (facilityIds.containsKey(district)) {
+          facilityId = facilityIds[district]!;
+        } else {
+          final displayName = _displayDistrict(district);
+          facilityId = await getOrCreate(
+            'Lumiere Stay - Cơ sở $displayName',
+            'Đường trung tâm, $displayName, TP. HCM',
+          );
+          facilityIds[district] = facilityId;
+        }
+
+        final startNum = _startNum(district);
+        final currentCount = roomCounts[district] ?? startNum;
+        final roomNumber = '$currentCount';
+        roomCounts[district] = currentCount + 1;
+
+        String status = 'empty';
+        if (roomNumber == '101' && district == 'Quan 1') status = 'rented';
+        else if (roomNumber == '201' && district == 'Quan 3') status = 'rented';
+        else if (roomNumber == '202' && district == 'Quan 3') status = 'maintenance';
+
+        await db.insert('rooms', {
+          'facility_id': facilityId,
+          'room_number': roomNumber,
+          'price': price,
+          'deposit': price * 2,
+          'max_tenants': (district == 'Quan 1') ? 2 : 3,
+          'status': status,
+          'description': 'Diện tích: ${area}m². $title',
+          'image_url': defaultRoomImages[(int.tryParse(roomNumber) ?? 0) % defaultRoomImages.length],
+          'amenities': json.encode(amenities),
+        });
+      }
+      seeded = true;
+    } catch (e) {
+      print('checkAndSeedDatabase: JSON load failed: $e. Using fallback.');
+    }
+
+    if (!seeded) {
+      final fac1 = facilityIds['Quan 1']!;
+      final fac2 = facilityIds['Quan 3']!;
+      await db.insert('rooms', {
+        'facility_id': fac1, 'room_number': '101', 'price': 4500000.0,
+        'deposit': 9000000.0, 'max_tenants': 2, 'status': 'rented',
+        'description': 'Diện tích: 22m². Phòng thoáng mát trung tâm Quận 1.',
+        'image_url': defaultRoomImages[0],
+        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Tủ lạnh']),
+      });
+      await db.insert('rooms', {
+        'facility_id': fac1, 'room_number': '102', 'price': 4800000.0,
+        'deposit': 9600000.0, 'max_tenants': 2, 'status': 'empty',
+        'description': 'Diện tích: 30m². Căn hộ mini có ban công gần Quận 1.',
+        'image_url': defaultRoomImages[1],
+        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Tủ lạnh', 'Ban công']),
+      });
+      await db.insert('rooms', {
+        'facility_id': fac2, 'room_number': '201', 'price': 5200000.0,
+        'deposit': 10000000.0, 'max_tenants': 3, 'status': 'rented',
+        'description': 'Diện tích: 25m². Phòng studio trung tâm Quận 3.',
+        'image_url': defaultRoomImages[2],
+        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Ban công']),
+      });
+      await db.insert('rooms', {
+        'facility_id': fac2, 'room_number': '202', 'price': 5500000.0,
+        'deposit': 11000000.0, 'max_tenants': 3, 'status': 'maintenance',
+        'description': 'Diện tích: 20m². Phòng yên tĩnh gần Lê Văn Sỹ Quận 3.',
+        'image_url': defaultRoomImages[3],
+        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi']),
+      });
+    }
   }
 
   // --- Users CRUD ---
