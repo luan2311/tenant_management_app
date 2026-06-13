@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tenant_management_app/services/app_state.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
-import 'package:tenant_management_app/views/auth/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -124,10 +123,7 @@ class ProfileScreen extends StatelessWidget {
   Future<void> _logout(BuildContext context, AppState appState) async {
     await appState.logout();
     if (!context.mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _showChangePasswordDialog(

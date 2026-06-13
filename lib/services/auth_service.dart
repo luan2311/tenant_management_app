@@ -7,6 +7,10 @@ import 'package:tenant_management_app/models/user.dart';
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const Set<String> _adminEmails = {
+    'admin@gmail.com',
+    'luan.admin@lumiere.com',
+  };
   static const String _webClientId =
       '804871641062-8a5e65imsi9j1ea43ojub6ku739bat4c.apps.googleusercontent.com';
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -49,12 +53,13 @@ class AuthService {
     final user = _auth.currentUser;
     if (user == null) return null;
     final doc = await _firestore.collection('users').doc(user.uid).get();
+    final defaultRole = _roleForEmail(user.email);
     if (!doc.exists) {
       final userModel = UserModel(
         uid: user.uid,
         fullName: user.displayName ?? user.email?.split('@').first ?? '',
         email: user.email,
-        role: 'tenant',
+        role: defaultRole,
         createdAt: DateTime.now(),
         provider:
             user.providerData.any((info) => info.providerId == 'google.com')
@@ -67,7 +72,22 @@ class AuthService {
           .set(userModel.toFirestore());
       return userModel;
     }
-    return UserModel.fromFirestore(doc);
+
+    final userModel = UserModel.fromFirestore(doc);
+    if (defaultRole == 'admin' && userModel.role != 'admin') {
+      final updatedUser = userModel.copyWith(role: 'admin');
+      await _firestore.collection('users').doc(user.uid).update({
+        'role': 'admin',
+      });
+      return updatedUser;
+    }
+
+    return userModel;
+  }
+
+  static String _roleForEmail(String? email) {
+    final normalizedEmail = email?.trim().toLowerCase();
+    return _adminEmails.contains(normalizedEmail) ? 'admin' : 'tenant';
   }
 
   // ─── Đăng nhập bằng Email/Password ──────────────────────────────────────────
