@@ -22,6 +22,20 @@ class ProfileScreen extends StatelessWidget {
         ? user!.phone!.trim()
         : 'Chưa cập nhật';
 
+    final activeData = appState.activeRoomData;
+    final String roomText;
+    final String invoiceText;
+
+    if (user?.role == 'admin') {
+      roomText = '${appState.rooms.length} phòng';
+      invoiceText = '${appState.invoices.length} hóa đơn';
+    } else {
+      final room = activeData?['room'];
+      roomText = room != null ? 'P.${room['room_number']}' : 'Chưa có';
+      final invoiceCount = activeData?['invoices']?.length ?? 0;
+      invoiceText = '$invoiceCount';
+    }
+
     return Scaffold(
       backgroundColor: kSurface,
       body: Stack(
@@ -42,11 +56,11 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: _MetricTile(
                         icon: Icons.home_work_outlined,
-                        label: 'Phòng',
-                        value: 'P.402',
+                        label: user?.role == 'admin' ? 'Tổng số phòng' : 'Phòng',
+                        value: roomText,
                         tint: kPrimaryFixed,
                       ),
                     ),
@@ -54,8 +68,8 @@ class ProfileScreen extends StatelessWidget {
                     Expanded(
                       child: _MetricTile(
                         icon: Icons.receipt_long_outlined,
-                        label: 'Hóa đơn',
-                        value: '${appState.invoices.length}',
+                        label: user?.role == 'admin' ? 'Tổng hóa đơn' : 'Hóa đơn',
+                        value: invoiceText,
                         tint: kTertiaryContainer,
                       ),
                     ),

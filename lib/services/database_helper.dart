@@ -10,6 +10,7 @@ import 'package:tenant_management_app/models/tenant.dart';
 import 'package:tenant_management_app/models/contract.dart';
 import 'package:tenant_management_app/models/invoice.dart';
 import 'package:tenant_management_app/models/notification.dart';
+import 'package:tenant_management_app/models/rental_request.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -38,9 +39,10 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
+        await db.execute('DROP TABLE IF EXISTS rental_requests');
         await db.execute('DROP TABLE IF EXISTS notifications');
         await db.execute('DROP TABLE IF EXISTS invoices');
         await db.execute('DROP TABLE IF EXISTS contracts');
@@ -58,6 +60,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firebase_uid TEXT UNIQUE,
           username TEXT UNIQUE NOT NULL,
           password TEXT NOT NULL,
           full_name TEXT NOT NULL,
@@ -160,6 +163,26 @@ class DatabaseHelper {
           created_at TEXT NOT NULL,
           is_read INTEGER DEFAULT 0,
           FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    ''');
+
+    // 8. Rental Requests table
+    await db.execute('''
+      CREATE TABLE rental_requests (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firestore_id TEXT UNIQUE,
+          room_id INTEGER NOT NULL,
+          room_number TEXT NOT NULL,
+          user_uid TEXT NOT NULL,
+          full_name TEXT NOT NULL,
+          phone TEXT NOT NULL,
+          cccd TEXT NOT NULL,
+          hometown TEXT,
+          start_date TEXT NOT NULL,
+          occupants INTEGER DEFAULT 1,
+          status TEXT CHECK(status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+          created_at TEXT NOT NULL,
+          FOREIGN KEY(room_id) REFERENCES rooms(id) ON DELETE CASCADE
       )
     ''');
 
@@ -886,6 +909,42 @@ class DatabaseHelper {
     );
   }
 
+  Future<ContractModel?> getContractById(int contractId) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'contracts',
+      where: 'id = ?',
+      whereArgs: [contractId],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return ContractModel.fromMap(maps.first);
+  }
+
+  Future<TenantModel?> getTenantById(int tenantId) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'tenants',
+      where: 'id = ?',
+      whereArgs: [tenantId],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return TenantModel.fromMap(maps.first);
+  }
+
+  Future<RoomModel?> getRoomById(int roomId) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'rooms',
+      where: 'id = ?',
+      whereArgs: [roomId],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return RoomModel.fromMap(maps.first);
+  }
+
   Future<int> terminateContract(int contractId, int roomId) async {
     final db = await instance.database;
     // Task KHANH.3.2: Lập trình tính năng kết thúc hợp đồng (Trả phòng), tự động đưa phòng trọ về trạng thái trống 'empty'
@@ -1269,4 +1328,253 @@ class DatabaseHelper {
       }
     }
   }
+
+  // --- Users & Sync Helper methods ---
+
+  Future<void> syncUserToSQLite(UserModel user) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'users',
+      where: 'firebase_uid = ? OR email = ?',
+      whereArgs: [user.uid, user.email ?? ''],
+    );
+    if (maps.isEmpty) {
+      await db.insert('users', {
+        'firebase_uid': user.uid,
+        'username': user.email?.split('@').first ?? '',
+        'password': '',
+        'full_name': user.fullName,
+        'phone': user.phone,
+        'email': user.email,
+        'role': user.role,
+        'is_logged_in': 1,
+      });
+    } else {
+      final id = maps.first['id'] as int;
+      await db.update(
+        'users',
+        {
+          'firebase_uid': user.uid,
+          'full_name': user.fullName,
+          'phone': user.phone ?? maps.first['phone'],
+          'email': user.email ?? maps.first['email'],
+          'role': user.role,
+          'is_logged_in': 1,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+  }
+
+  Future<int?> getLocalUserIdByFirebaseUid(String firebaseUid) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'users',
+      columns: ['id'],
+      where: 'firebase_uid = ?',
+      whereArgs: [firebaseUid],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first['id'] as int;
+    }
+    return null;
+  }
+
+  // --- Rental Requests CRUD ---
+
+  Future<int> insertRentalRequest(RentalRequestModel request) async {
+    final db = await instance.database;
+    return await db.insert('rental_requests', request.toMap());
+  }
+
+  Future<List<RentalRequestModel>> getAllRentalRequests() async {
+    final db = await instance.database;
+    final maps = await db.query('rental_requests', orderBy: 'created_at DESC');
+    return maps.map((m) => RentalRequestModel.fromMap(m)).toList();
+  }
+
+  Future<List<RentalRequestModel>> getPendingRentalRequests() async {
+    final db = await instance.database;
+    final maps = await db.query('rental_requests', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at DESC');
+    return maps.map((m) => RentalRequestModel.fromMap(m)).toList();
+  }
+
+  /// Locally approves a rental request in SQLite, syncing the tenant profile and contract details.
+  Future<void> localApproveRentalRequest({
+    required int requestId,
+    required String tenantUid,
+    required String fullName,
+    required String phone,
+    required String cccd,
+    required String? hometown,
+    required String startDate,
+    required int roomId,
+    required int durationMonths,
+    required double initialElectricity,
+    required double initialWater,
+  }) async {
+    final db = await instance.database;
+
+    await db.transaction((txn) async {
+      // 1. Get local user ID
+      final userMaps = await txn.query('users', columns: ['id'], where: 'firebase_uid = ?', whereArgs: [tenantUid]);
+      int? localUserId;
+      if (userMaps.isNotEmpty) {
+        localUserId = userMaps.first['id'] as int;
+      }
+
+      // 2. Insert or update tenant
+      int tenantId;
+      final tenantMaps = await txn.query('tenants', where: 'cccd = ?', whereArgs: [cccd]);
+      if (tenantMaps.isNotEmpty) {
+        tenantId = tenantMaps.first['id'] as int;
+        await txn.update(
+          'tenants',
+          {
+            'user_id': localUserId,
+            'full_name': fullName,
+            'phone': phone,
+            'hometown': hometown,
+            'start_date': startDate,
+          },
+          where: 'id = ?',
+          whereArgs: [tenantId],
+        );
+      } else {
+        tenantId = await txn.insert('tenants', {
+          'user_id': localUserId,
+          'full_name': fullName,
+          'phone': phone,
+          'cccd': cccd,
+          'hometown': hometown,
+          'start_date': startDate,
+        });
+      }
+
+      // 3. Update room status to rented
+      await txn.update(
+        'rooms',
+        {'status': 'rented'},
+        where: 'id = ?',
+        whereArgs: [roomId],
+      );
+
+      // 4. Calculate end date
+      final start = DateTime.parse(startDate);
+      final end = DateTime(start.year, start.month + durationMonths, start.day);
+      final endDateStr = end.toIso8601String().substring(0, 10);
+
+      // 5. Get room price for deposit
+      final roomMaps = await txn.query('rooms', columns: ['price'], where: 'id = ?', whereArgs: [roomId]);
+      final double price = roomMaps.isNotEmpty ? (roomMaps.first['price'] as num).toDouble() : 0.0;
+
+      // 6. Create contract
+      await txn.insert('contracts', {
+        'room_id': roomId,
+        'tenant_id': tenantId,
+        'start_date': startDate,
+        'end_date': endDateStr,
+        'deposit': price * 2,
+        'initial_electricity': initialElectricity,
+        'initial_water': initialWater,
+        'status': 'active',
+      });
+
+      // 7. Update rental request status to approved
+      await txn.update(
+        'rental_requests',
+        {'status': 'approved'},
+        where: 'id = ?',
+        whereArgs: [requestId],
+      );
+    });
+  }
+
+  /// Locally rejects a rental request.
+  Future<void> localRejectRentalRequest(int requestId) async {
+    final db = await instance.database;
+    await db.update(
+      'rental_requests',
+      {'status': 'rejected'},
+      where: 'id = ?',
+      whereArgs: [requestId],
+    );
+  }
+
+  /// Resolves the room, active contract, roommates, and invoices for the logged-in tenant.
+  Future<Map<String, dynamic>?> getTenantActiveRoomAndContract(String firebaseUid) async {
+    final db = await instance.database;
+
+    // 1. Get local user ID
+    final userMaps = await db.query(
+      'users',
+      columns: ['id'],
+      where: 'firebase_uid = ?',
+      whereArgs: [firebaseUid],
+    );
+    if (userMaps.isEmpty) return null;
+    final localUserId = userMaps.first['id'] as int;
+
+    // 2. Get tenant record
+    final tenantMaps = await db.query(
+      'tenants',
+      where: 'user_id = ?',
+      whereArgs: [localUserId],
+    );
+    if (tenantMaps.isEmpty) return null;
+    final tenantId = tenantMaps.first['id'] as int;
+    final tenantData = tenantMaps.first;
+
+    // 3. Get active contract
+    final contractMaps = await db.query(
+      'contracts',
+      where: 'tenant_id = ? AND status = ?',
+      whereArgs: [tenantId, 'active'],
+      limit: 1,
+    );
+    if (contractMaps.isEmpty) {
+      return {
+        'tenant': tenantData,
+        'contract': null,
+        'room': null,
+        'roommates': [],
+        'invoices': [],
+      };
+    }
+    final contractData = contractMaps.first;
+    final roomId = contractData['room_id'] as int;
+
+    // 4. Get room details
+    final roomMaps = await db.query(
+      'rooms',
+      where: 'id = ?',
+      whereArgs: [roomId],
+    );
+    final roomData = roomMaps.isNotEmpty ? roomMaps.first : null;
+
+    // 5. Get roommates (other tenants who have active contracts in the same room)
+    final roommatesMaps = await db.rawQuery('''
+      SELECT t.* FROM tenants t
+      JOIN contracts c ON c.tenant_id = t.id
+      WHERE c.room_id = ? AND c.status = 'active' AND t.id != ?
+    ''', [roomId, tenantId]);
+
+    // 6. Get invoices for this contract
+    final invoiceMaps = await db.query(
+      'invoices',
+      where: 'contract_id = ?',
+      whereArgs: [contractData['id']],
+      orderBy: 'billing_month DESC',
+    );
+
+    return {
+      'tenant': tenantData,
+      'contract': contractData,
+      'room': roomData,
+      'roommates': roommatesMaps,
+      'invoices': invoiceMaps,
+    };
+  }
 }
+

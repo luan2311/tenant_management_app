@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tenant_management_app/services/app_state.dart';
 import 'my_invoice_screen.dart';
 import 'contract_detail_screen.dart';
 
@@ -7,6 +9,59 @@ class MyRoomScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final activeData = appState.activeRoomData;
+
+    // Check if the tenant doesn't have an active room
+    if (activeData == null || activeData['room'] == null || activeData['contract'] == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.meeting_room_outlined, size: 80, color: Color(0xFF94A3B8)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Bạn chưa thuê phòng nào',
+                    style: TextStyle(
+                      fontFamily: 'Be Vietnam Pro',
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Hãy chọn phòng phù hợp ở trang Khám phá và gửi yêu cầu thuê phòng cho chủ trọ nhé!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Be Vietnam Pro',
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final room = activeData['room'];
+    final tenant = activeData['tenant'];
+    final List<dynamic> roommates = activeData['roommates'] as List<dynamic>;
+
+    final roomNumber = room['room_number'] as String? ?? '';
+    final roomPrice = (room['price'] as num).toDouble();
+    final maxTenants = room['max_tenants'] as int? ?? 2;
+
+    final priceStr = '${roomPrice.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}đ';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
@@ -26,7 +81,7 @@ class MyRoomScreen extends StatelessWidget {
               const SizedBox(height: 16),
               
               // Thẻ thông tin phòng chính (Glassmorphic Card)
-              _buildMainRoomCard(),
+              _buildMainRoomCard(roomNumber, priceStr),
               const SizedBox(height: 16),
               
               // Thẻ hiển thị đơn giá Tiện ích
@@ -74,9 +129,14 @@ class MyRoomScreen extends StatelessWidget {
               Expanded(
                 child: ListView(
                   children: [
-                    _buildRoommateRow('Phùng Tuấn Huy', 'Người đại diện', true),
-                    _buildRoommateRow('Phạm Gia Khánh', 'Thành viên', false),
-                    _buildEmptySlotRow(),
+                    // Đại diện phòng (Chính là tài khoản đăng nhập)
+                    _buildRoommateRow(context, tenant['full_name'] as String, 'Đại diện phòng (Bạn)', true, cccd: tenant['cccd'] as String?, appState: appState),
+                    
+                    // Thành viên phòng
+                    ...roommates.map((rm) => _buildRoommateRow(context, rm['full_name'] as String, 'Thành viên', false, cccd: rm['cccd'] as String?, appState: appState)),
+                    
+                    // Các slot trống còn lại
+                    for (int i = roommates.length + 1; i < maxTenants; i++) _buildEmptySlotRow(context, appState),
                   ],
                 ),
               )
@@ -87,7 +147,123 @@ class MyRoomScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMainRoomCard() {
+  void _showAddRoommateDialog(BuildContext context, AppState appState) {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final cccdController = TextEditingController();
+    final hometownController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Thêm người ở cùng', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Họ và tên', labelStyle: TextStyle(fontFamily: 'Be Vietnam Pro')),
+                    style: const TextStyle(fontFamily: 'Be Vietnam Pro'),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'Vui lòng nhập họ tên' : null,
+                  ),
+                  TextFormField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Số điện thoại', labelStyle: TextStyle(fontFamily: 'Be Vietnam Pro')),
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(fontFamily: 'Be Vietnam Pro'),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'Vui lòng nhập số điện thoại' : null,
+                  ),
+                  TextFormField(
+                    controller: cccdController,
+                    decoration: const InputDecoration(labelText: 'Số CCCD', labelStyle: TextStyle(fontFamily: 'Be Vietnam Pro')),
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(fontFamily: 'Be Vietnam Pro'),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'Vui lòng nhập số CCCD' : null,
+                  ),
+                  TextFormField(
+                    controller: hometownController,
+                    decoration: const InputDecoration(labelText: 'Quê quán', labelStyle: TextStyle(fontFamily: 'Be Vietnam Pro')),
+                    style: const TextStyle(fontFamily: 'Be Vietnam Pro'),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'Vui lòng nhập quê quán' : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E6486)),
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(context);
+                  final success = await appState.addRoommate(
+                    fullName: nameController.text.trim(),
+                    phone: phoneController.text.trim(),
+                    cccd: cccdController.text.trim(),
+                    hometown: hometownController.text.trim(),
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(success ? 'Thêm người ở cùng thành công!' : 'Thêm người ở cùng thất bại.'),
+                        backgroundColor: success ? Colors.green : Colors.redAccent,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Thêm', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showRemoveRoommateDialog(BuildContext context, AppState appState, String name, String cccd) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Xóa người ở cùng', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontWeight: FontWeight.bold)),
+          content: Text('Bạn có chắc chắn muốn xóa thành viên $name ra khỏi phòng?', style: const TextStyle(fontFamily: 'Be Vietnam Pro')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () async {
+                Navigator.pop(context);
+                final success = await appState.removeRoommate(cccd);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(success ? 'Đã xóa thành viên thành công.' : 'Lỗi khi xóa thành viên. Vui lòng thử lại.'),
+                      backgroundColor: success ? Colors.green : Colors.redAccent,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Xóa', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMainRoomCard(String roomNumber, String priceStr) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: Container(
@@ -103,9 +279,9 @@ class MyRoomScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('SỐ PHÒNG', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 11, color: Colors.black45)),
-                const Text('P.402', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                Text('Phòng $roomNumber', style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
                 const SizedBox(height: 4),
-                const Text('Giá thuê / tháng: 4.500.000đ', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 12, color: Colors.black87)),
+                Text('Giá thuê / tháng: $priceStr', style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 12, color: Colors.black87)),
               ],
             ),
             Column(
@@ -135,7 +311,7 @@ class MyRoomScreen extends StatelessWidget {
         children: [
           UtilityRow(icon: Icons.electric_bolt, label: 'Điện', value: '3.500đ / kWh'),
           Divider(color: Colors.white),
-          UtilityRow(icon: Icons.water_drop, label: 'Nước', value: '20.000đ / khối'),
+          UtilityRow(icon: Icons.water_drop, label: 'Nước', value: '20.000đ / m³'),
           Divider(color: Colors.white),
           UtilityRow(icon: Icons.wifi, label: 'Internet', value: 'Miễn phí'),
         ],
@@ -143,46 +319,59 @@ class MyRoomScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRoommateRow(String name, String role, bool isLeader) {
+  Widget _buildRoommateRow(BuildContext context, String name, String role, bool isLeader, {String? cccd, AppState? appState}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
       child: Row(
         children: [
-          const CircleAvatar(radius: 20, backgroundColor: Colors.blueGrey, child: Icon(Icons.person, color: Colors.white)),
+          CircleAvatar(
+            backgroundColor: isLeader ? const Color(0xFFE0F2FE) : const Color(0xFFF1F5F9),
+            child: Icon(Icons.person, color: isLeader ? const Color(0xFF0284C7) : const Color(0xFF64748B)),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(name, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontWeight: FontWeight.bold, fontSize: 14)),
-                Text(role, style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 11, color: isLeader ? const Color(0xFF4A7D96) : Colors.black45)),
+                Text(role, style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 11, color: isLeader ? const Color(0xFF0284C7) : Colors.black45, fontWeight: isLeader ? FontWeight.bold : FontWeight.normal)),
               ],
             ),
           ),
-          IconButton(icon: const Icon(Icons.phone_in_talk_outlined, size: 20, color: Colors.black54), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.chat_bubble_outline, size: 20, color: Colors.black54), onPressed: () {}),
+          if (!isLeader && cccd != null && appState != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              onPressed: () => _showRemoveRoommateDialog(context, appState, name, cccd),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptySlotRow() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFCBD5E1), style: BorderStyle.solid),
-      ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.person_add_alt, color: Colors.black38, size: 18),
-          SizedBox(width: 8),
-          Text('Còn 1 chỗ trống', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.black45, fontSize: 13)),
-        ],
+  Widget _buildEmptySlotRow(BuildContext context, AppState appState) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => _showAddRoommateDialog(context, appState),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2E8F0), style: BorderStyle.solid),
+        ),
+        child: const Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Color(0xFFF1F5F9),
+              child: Icon(Icons.person_add_outlined, color: Colors.black26),
+            ),
+            SizedBox(width: 12),
+            Text('Slot còn trống (Click để thêm)', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.black38, fontSize: 13, fontStyle: FontStyle.italic)),
+          ],
+        ),
       ),
     );
   }
@@ -192,21 +381,23 @@ class UtilityRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+
   const UtilityRow({super.key, required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFF4A7D96)),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 13, color: Colors.black54)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontWeight: FontWeight.bold, fontSize: 13)),
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 18, color: const Color(0xFF2E6486)),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 13, color: Colors.black87)),
+          ],
+        ),
+        Text(value, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+      ],
     );
   }
 }

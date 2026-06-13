@@ -1,8 +1,10 @@
 import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 import 'package:tenant_management_app/mock/room_mock_data.dart';
+import 'package:tenant_management_app/services/app_state.dart';
+import 'package:tenant_management_app/models/rental_request.dart';
 
 // ─── RentalRequestScreen — Yêu cầu thuê ──────────────────────────────────────
 // HUY.4.1 · Sprint 4
@@ -18,13 +20,35 @@ class RentalRequestScreen extends StatefulWidget {
 }
 
 class _RentalRequestScreenState extends State<RentalRequestScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _cccdController = TextEditingController();
+  final TextEditingController _hometownController = TextEditingController();
+  final TextEditingController _occupantsController = TextEditingController(text: '1');
   DateTime? _selectedDate;
   int _occupants = 1;
-  final TextEditingController _occupantsController =
-      TextEditingController(text: '1');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = Provider.of<AppState>(context, listen: false);
+      final user = appState.currentUser;
+      if (user != null) {
+        setState(() {
+          _nameController.text = user.fullName;
+          _phoneController.text = user.phone ?? '';
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _cccdController.dispose();
+    _hometownController.dispose();
     _occupantsController.dispose();
     super.dispose();
   }
@@ -81,23 +105,72 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
   }
 
   void _submit() {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final cccd = _cccdController.text.trim();
+    final hometown = _hometownController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập họ tên')),
+      );
+      return;
+    }
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập số điện thoại')),
+      );
+      return;
+    }
+    if (cccd.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập số CCCD/CMND')),
+      );
+      return;
+    }
     if (_selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng chọn ngày dự kiến thuê')),
       );
       return;
     }
-    // Sprint 5: thay bằng DatabaseHelper.insertRentalRequest(room, date, occupants)
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Đã gửi yêu cầu thuê phòng ${widget.room.roomNumber}: '
-          '$_formattedDate · $_occupants người',
-        ),
-        backgroundColor: kPrimary,
-      ),
+
+    final appState = Provider.of<AppState>(context, listen: false);
+    final user = appState.currentUser;
+    if (user == null) return;
+
+    final request = RentalRequestModel(
+      roomId: widget.room.id,
+      roomNumber: widget.room.roomNumber,
+      userUid: user.uid,
+      fullName: name,
+      phone: phone,
+      cccd: cccd,
+      hometown: hometown.isNotEmpty ? hometown : null,
+      startDate: _selectedDate!.toIso8601String().substring(0, 10),
+      occupants: _occupants,
+      status: 'pending',
+      createdAt: DateTime.now().toIso8601String().replaceAll('T', ' ').substring(0, 19),
     );
-    Navigator.maybePop(context);
+
+    appState.sendRentalRequest(request).then((success) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã gửi yêu cầu thuê phòng ${widget.room.roomNumber} thành công!'),
+            backgroundColor: kPrimary,
+          ),
+        );
+        Navigator.maybePop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gửi yêu cầu thất bại. Vui lòng thử lại.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -128,99 +201,185 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
           Align(
             alignment: Alignment.bottomCenter,
             child: _GlassPanel(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Drag handle (chỉ hiển thị trên mobile — luôn show trong app)
-                  Center(
-                    child: Container(
-                      width: 48,
-                      height: 6,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: kSurfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Gửi yêu cầu thuê',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: kOnSurface,
-                          letterSpacing: -0.5,
+                      // Drag handle (chỉ hiển thị trên mobile — luôn show trong app)
+                      Center(
+                        child: Container(
+                          width: 48,
+                          height: 6,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: kSurfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
                         ),
                       ),
-                      _CloseButton(onTap: () => Navigator.maybePop(context)),
+
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Gửi yêu cầu thuê',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: kOnSurface,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          _CloseButton(onTap: () => Navigator.maybePop(context)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Phòng ${widget.room.roomNumber} · ${widget.room.facility}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: kOnSurfaceVariant,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Họ tên Field
+                      _FieldLabel(label: 'Họ và tên khách thuê'),
+                      const SizedBox(height: 8),
+                      _NeumorphicField(
+                        icon: Icons.person_outline,
+                        child: TextField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            hintText: 'Nhập họ tên đầy đủ',
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: const TextStyle(fontSize: 15, color: kOnSurface),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Số điện thoại Field
+                      _FieldLabel(label: 'Số điện thoại liên hệ'),
+                      const SizedBox(height: 8),
+                      _NeumorphicField(
+                        icon: Icons.phone_outlined,
+                        child: TextField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(
+                            hintText: 'Nhập số điện thoại',
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: const TextStyle(fontSize: 15, color: kOnSurface),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Số CCCD Field
+                      _FieldLabel(label: 'Số CCCD / CMND'),
+                      const SizedBox(height: 8),
+                      _NeumorphicField(
+                        icon: Icons.badge_outlined,
+                        child: TextField(
+                          controller: _cccdController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            hintText: 'Nhập 12 số CCCD',
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: const TextStyle(fontSize: 15, color: kOnSurface),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Quê quán Field
+                      _FieldLabel(label: 'Quê quán (Tỉnh / Thành phố)'),
+                      const SizedBox(height: 8),
+                      _NeumorphicField(
+                        icon: Icons.home_work_outlined,
+                        child: TextField(
+                          controller: _hometownController,
+                          decoration: const InputDecoration(
+                            hintText: 'Nhập tỉnh/thành quê quán',
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: const TextStyle(fontSize: 15, color: kOnSurface),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Date Field
+                      _FieldLabel(label: 'Ngày dự kiến bắt đầu thuê'),
+                      const SizedBox(height: 8),
+                      _NeumorphicField(
+                        onTap: _pickDate,
+                        icon: Icons.calendar_month_outlined,
+                        child: Text(
+                          _formattedDate,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: _selectedDate == null
+                                ? kOnSurfaceVariant
+                                : kOnSurface,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Occupants Field
+                      _FieldLabel(label: 'Số người ở cùng'),
+                      const SizedBox(height: 8),
+                      _OccupantsField(
+                        value: _occupants,
+                        onDecrement: _decrementOccupants,
+                        onIncrement: _incrementOccupants,
+                        onChanged: (val) {
+                          final parsed = int.tryParse(val);
+                          if (parsed != null && parsed >= 1 && parsed <= 10) {
+                            setState(() => _occupants = parsed);
+                          }
+                        },
+                        controller: _occupantsController,
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // Submit Button
+                      _GradientButton(
+                        label: 'Gửi yêu cầu',
+                        onPressed: _submit,
+                      ),
+
+                      // Safe area bottom padding
+                      SizedBox(
+                        height: MediaQuery.of(context).padding.bottom + 16,
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Phòng ${widget.room.roomNumber} · ${widget.room.facility}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: kOnSurfaceVariant,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Date Field
-                  _FieldLabel(label: 'Ngày dự kiến thuê'),
-                  const SizedBox(height: 8),
-                  _NeumorphicField(
-                    onTap: _pickDate,
-                    icon: Icons.calendar_month_outlined,
-                    child: Text(
-                      _formattedDate,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: _selectedDate == null
-                            ? kOnSurfaceVariant
-                            : kOnSurface,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Occupants Field
-                  _FieldLabel(label: 'Số người ở'),
-                  const SizedBox(height: 8),
-                  _OccupantsField(
-                    value: _occupants,
-                    onDecrement: _decrementOccupants,
-                    onIncrement: _incrementOccupants,
-                    onChanged: (val) {
-                      final parsed = int.tryParse(val);
-                      if (parsed != null && parsed >= 1 && parsed <= 10) {
-                        setState(() => _occupants = parsed);
-                      }
-                    },
-                    controller: _occupantsController,
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Submit Button
-                  _GradientButton(
-                    label: 'Gửi yêu cầu',
-                    onPressed: _submit,
-                  ),
-
-                  // Safe area bottom padding
-                  SizedBox(
-                    height: MediaQuery.of(context).padding.bottom + 8,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

@@ -385,20 +385,6 @@ class _RoomListHeader extends StatelessWidget {
               ),
             ],
           ),
-          const Row(
-            children: [
-              Text(
-                'Sắp xếp',
-                style: TextStyle(
-                  color: kPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-              SizedBox(width: 4),
-              Icon(Icons.sort_rounded, color: kPrimary, size: 18),
-            ],
-          ),
         ],
       ),
     );

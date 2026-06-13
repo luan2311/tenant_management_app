@@ -499,16 +499,13 @@ class _AmenitiesSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: amenities.map((name) {
               final icon =
                   iconMap[name] ?? Icons.check_circle_outline_rounded;
-              return _AmenityTile(icon: icon, label: name);
+              return _AmenityChip(icon: icon, label: name);
             }).toList(),
           ),
         ],
@@ -517,42 +514,37 @@ class _AmenitiesSection extends StatelessWidget {
   }
 }
 
-class _AmenityTile extends StatelessWidget {
-  const _AmenityTile({required this.icon, required this.label});
+class _AmenityChip extends StatelessWidget {
+  const _AmenityChip({required this.icon, required this.label});
   final IconData icon;
   final String   label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: kSurfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.6),
-            blurRadius: 8,
-            offset: const Offset(-2, -2),
-          ),
-          BoxShadow(
-            color: kOnSurfaceVariant.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(4, 4),
-          ),
-        ],
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: kOutlineVariant.withValues(alpha: 0.15),
+        ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: kPrimary, size: 26),
-          const SizedBox(height: 6),
+          Icon(
+            icon,
+            size: 16,
+            color: kPrimary,
+          ),
+          const SizedBox(width: 6),
           Text(
             label,
-            textAlign: TextAlign.center,
             style: const TextStyle(
               color: kOnSurfaceVariant,
-              fontSize: 10,
-              height: 1.3,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
             ),
           ),
         ],

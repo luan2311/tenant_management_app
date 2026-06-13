@@ -57,67 +57,119 @@ class _AdminMainLayoutState extends State<AdminMainLayout> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
             color: Colors.white.withOpacity(0.18),
             child: GlassmorphicContainer(
-              padding: const EdgeInsets.symmetric(vertical: 7),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
               borderRadius: 26,
               opacity: 0.84,
-              child: BottomNavigationBar(
+              child: _AdminNavBar(
                 currentIndex: _currentIndex,
-                onTap: (index) {
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                },
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                type: BottomNavigationBarType.fixed,
-                selectedItemColor: AppColors.sanctuaryDark,
-                unselectedItemColor: AppColors.textSecondary.withOpacity(0.5),
-                selectedLabelStyle: AppStyles.caption(
-                  context,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                ),
-                unselectedLabelStyle: AppStyles.caption(context, fontSize: 11),
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.dashboard_outlined),
-                    activeIcon: Icon(Icons.dashboard),
-                    label: 'Trang chủ',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.meeting_room_outlined),
-                    activeIcon: Icon(Icons.meeting_room),
-                    label: 'Phòng',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.people_outline),
-                    activeIcon: Icon(Icons.people),
-                    label: 'Khách',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.description_outlined),
-                    activeIcon: Icon(Icons.description),
-                    label: 'HĐ',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.receipt_long_outlined),
-                    activeIcon: Icon(Icons.receipt_long),
-                    label: 'Hóa đơn',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.bar_chart_outlined),
-                    activeIcon: Icon(Icons.bar_chart),
-                    label: 'Thống kê',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.account_circle_outlined),
-                    activeIcon: Icon(Icons.account_circle),
-                    label: 'Cá nhân',
-                  ),
-                ],
+                onTap: (i) => setState(() => _currentIndex = i),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Custom Admin Nav Bar ────────────────────────────────────────────────────
+
+class _AdminNavBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _AdminNavBar({required this.currentIndex, required this.onTap});
+
+  static const _items = [
+    (icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: 'Trang chủ'),
+    (icon: Icons.meeting_room_outlined, activeIcon: Icons.meeting_room, label: 'Phòng'),
+    (icon: Icons.people_outline, activeIcon: Icons.people, label: 'Khách'),
+    (icon: Icons.description_outlined, activeIcon: Icons.description, label: 'Hợp đồng'),
+    (icon: Icons.receipt_long_outlined, activeIcon: Icons.receipt_long, label: 'Hóa đơn'),
+    (icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart, label: 'Thống kê'),
+    (icon: Icons.account_circle_outlined, activeIcon: Icons.account_circle, label: 'Cá nhân'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(_items.length, (i) {
+        final active = i == currentIndex;
+        final item = _items[i];
+        return active
+            ? Expanded(
+                child: _AdminNavItem(
+                  icon: item.activeIcon,
+                  label: item.label,
+                  isActive: true,
+                  onTap: () => onTap(i),
+                ),
+              )
+            : _AdminNavItem(
+                icon: item.icon,
+                label: item.label,
+                isActive: false,
+                onTap: () => onTap(i),
+              );
+      }),
+    );
+  }
+}
+
+class _AdminNavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _AdminNavItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        decoration: isActive
+            ? BoxDecoration(
+                color: AppColors.sanctuaryDark.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(18),
+              )
+            : null,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: isActive
+                  ? AppColors.sanctuaryDark
+                  : AppColors.textSecondary.withValues(alpha: 0.5),
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppStyles.caption(
+                  context,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: AppColors.sanctuaryDark,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
         ),
       ),
     );

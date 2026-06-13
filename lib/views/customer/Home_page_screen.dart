@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 import 'package:tenant_management_app/services/auth_service.dart';
+import 'package:tenant_management_app/services/app_state.dart';
 
 // ─── HomeScreen — Trang chủ khách thuê ───────────────────────────────────────
 // HUY.3.1 · Sprint 3
@@ -25,7 +27,7 @@ class HomeScreen extends StatelessWidget {
                   delegate: SliverChildListDelegate([
                     _GreetingSection(onViewAll: onViewAll),
                     const SizedBox(height: 24),
-                    const _RoomCard(),
+                    _RoomCard(onTapExplore: onViewAll),
                     const SizedBox(height: 16),
                     const _UnpaidBillCard(),
                     const SizedBox(height: 16),
@@ -205,10 +207,90 @@ class _GreetingSection extends StatelessWidget {
 
 // ─── Room Card (Glassmorphism) ────────────────────────────────────────────────
 class _RoomCard extends StatelessWidget {
-  const _RoomCard();
+  final VoidCallback? onTapExplore;
+  const _RoomCard({this.onTapExplore});
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final activeData = appState.activeRoomData;
+
+    // Check if the tenant doesn't have an active room
+    if (activeData == null || activeData['room'] == null || activeData['contract'] == null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: kOutlineVariant.withValues(alpha: 0.15)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  blurRadius: 16,
+                  offset: const Offset(-4, -4),
+                ),
+                BoxShadow(
+                  color: kOnSurfaceVariant.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(8, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'BẠN CHƯA THUÊ PHÒNG NÀO',
+                  style: TextStyle(
+                    color: kOnSurfaceVariant,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Hãy chọn phòng phù hợp ở trang Khám phá và gửi yêu cầu thuê cho chủ trọ nhé!',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: kOnSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (onTapExplore != null)
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      elevation: 0,
+                    ),
+                    onPressed: onTapExplore,
+                    icon: const Icon(Icons.search_rounded, size: 18),
+                    label: const Text('Khám phá phòng trọ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final room = activeData['room'];
+    final contract = activeData['contract'];
+    final List<dynamic> roommates = activeData['roommates'] as List<dynamic>;
+
+    final roomNumber = room['room_number'] as String? ?? '';
+    final startDate = contract['start_date'] as String? ?? '';
+    final endDate = contract['end_date'] as String? ?? '';
+    final occupantsCount = roommates.length + 1;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -252,10 +334,10 @@ class _RoomCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'PHÒNG ĐANG THUÊ',
                             style: TextStyle(
                               color: kOnSurfaceVariant,
@@ -264,10 +346,10 @@ class _RoomCard extends StatelessWidget {
                               letterSpacing: 1.5,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'P.101',
-                            style: TextStyle(
+                            'Phòng $roomNumber',
+                            style: const TextStyle(
                               color: kOnSurface,
                               fontWeight: FontWeight.w700,
                               fontSize: 22,
@@ -300,10 +382,10 @@ class _RoomCard extends StatelessWidget {
                   const SizedBox(height: 20),
                   _infoRow(
                     Icons.calendar_month_outlined,
-                    'Hợp đồng: 12/05/2024 – 12/05/2025',
+                    'Hợp đồng: $startDate – $endDate',
                   ),
                   const SizedBox(height: 12),
-                  _infoRow(Icons.group_outlined, '2 người ở'),
+                  _infoRow(Icons.group_outlined, '$occupantsCount người đang ở'),
                 ],
               ),
             ],
@@ -341,6 +423,71 @@ class _UnpaidBillCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final activeData = appState.activeRoomData;
+
+    if (activeData == null || activeData['invoices'] == null) {
+      return const SizedBox.shrink();
+    }
+
+    final List<dynamic> invoices = activeData['invoices'] as List<dynamic>;
+    final unpaidInvoices = invoices.where((inv) => inv['status'] == 'unpaid').toList();
+
+    if (unpaidInvoices.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFD1FAE5), // emerald-100
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x3310B981)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: Color(0x3310B981),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_outline_rounded,
+                color: Color(0xFF065F46),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Không có hóa đơn trễ hạn',
+                  style: TextStyle(
+                    color: Color(0xFF065F46),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Tất cả các khoản phí đã được thanh toán.',
+                  style: TextStyle(
+                    color: Color(0xFF047857),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    final invoice = unpaidInvoices.first;
+    final billingMonth = invoice['billing_month'] as String;
+    final totalPrice = invoice['total_price'] as double;
+    final priceStr = '${totalPrice.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}đ';
+
     return GestureDetector(
       onTap: () {},
       child: Container(
@@ -380,21 +527,21 @@ class _UnpaidBillCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hóa đơn tháng 10',
-                      style: TextStyle(
+                      'Hóa đơn tháng $billingMonth',
+                      style: const TextStyle(
                         color: _kOnErrorContainer,
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                         letterSpacing: -0.2,
                       ),
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Hạn chót: Hôm nay',
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Vui lòng thanh toán sớm',
                       style: TextStyle(
                         color: _kErrorDim,
                         fontSize: 12,
@@ -405,19 +552,19 @@ class _UnpaidBillCard extends StatelessWidget {
                 ),
               ],
             ),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '3.450.000đ',
-                  style: TextStyle(
+                  priceStr,
+                  style: const TextStyle(
                     color: _kOnErrorContainer,
                     fontWeight: FontWeight.w700,
                     fontSize: 17,
                   ),
                 ),
-                SizedBox(height: 2),
-                Text(
+                const SizedBox(height: 2),
+                const Text(
                   'CHƯA THANH TOÁN',
                   style: TextStyle(
                     color: _kErrorDim,
