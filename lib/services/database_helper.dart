@@ -339,7 +339,9 @@ class DatabaseHelper {
           'max_tenants': (district == 'Quan 1') ? 2 : 3,
           'status': status,
           'description': 'Diện tích: ${area}m². $title',
-          'image_url': defaultRoomImages[(int.tryParse(roomNumber) ?? 0) % defaultRoomImages.length],
+          'image_url':
+              defaultRoomImages[(int.tryParse(roomNumber) ?? 0) %
+                  defaultRoomImages.length],
           'amenities': json.encode(amenities),
         });
 
@@ -625,35 +627,54 @@ class DatabaseHelper {
     await db.insert('notifications', {
       'facility_id': fac1,
       'title': 'Lịch bảo trì định kỳ thang máy',
-      'content': 'Ban quản lý thông báo sẽ bảo trì hệ thống thang máy từ 09:00 đến 12:00 thứ Bảy tuần này. Vui lòng sử dụng thang bộ trong thời gian trên.',
+      'content':
+          'Ban quản lý thông báo sẽ bảo trì hệ thống thang máy từ 09:00 đến 12:00 thứ Bảy tuần này. Vui lòng sử dụng thang bộ trong thời gian trên.',
       'type': 'facility_notice',
-      'created_at': DateTime.now().subtract(const Duration(days: 2)).toIso8601String().substring(0, 19).replaceAll('T', ' '),
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 2))
+          .toIso8601String()
+          .substring(0, 19)
+          .replaceAll('T', ' '),
       'is_read': 0,
     });
 
     await db.insert('notifications', {
       'facility_id': fac1,
       'title': 'Thông báo cúp nước tạm thời',
-      'content': 'Cơ sở Quận 1 sẽ bị tạm ngưng cấp nước vào rạng sáng ngày 15/06 từ 01:00 đến 04:00 để súc xả bể nước ngầm.',
+      'content':
+          'Cơ sở Quận 1 sẽ bị tạm ngưng cấp nước vào rạng sáng ngày 15/06 từ 01:00 đến 04:00 để súc xả bể nước ngầm.',
       'type': 'facility_notice',
-      'created_at': DateTime.now().subtract(const Duration(days: 1)).toIso8601String().substring(0, 19).replaceAll('T', ' '),
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 1))
+          .toIso8601String()
+          .substring(0, 19)
+          .replaceAll('T', ' '),
       'is_read': 0,
     });
 
     await db.insert('notifications', {
       'facility_id': fac2,
       'title': 'Thông báo sửa chữa hệ thống điện',
-      'content': 'Hệ thống điện tòa nhà Quận 3 sẽ được nâng cấp từ 13:00 đến 15:00 ngày 16/06. Vui lòng tắt các thiết bị điện lớn trước thời gian này.',
+      'content':
+          'Hệ thống điện tòa nhà Quận 3 sẽ được nâng cấp từ 13:00 đến 15:00 ngày 16/06. Vui lòng tắt các thiết bị điện lớn trước thời gian này.',
       'type': 'facility_notice',
-      'created_at': DateTime.now().toIso8601String().substring(0, 19).replaceAll('T', ' '),
+      'created_at': DateTime.now()
+          .toIso8601String()
+          .substring(0, 19)
+          .replaceAll('T', ' '),
       'is_read': 0,
     });
 
     await db.insert('notifications', {
       'title': 'Nội quy phòng chống dịch bệnh và vệ sinh chung',
-      'content': 'Yêu cầu tất cả cư dân tuân thủ việc phân loại rác tại nguồn và giữ gìn vệ sinh chung tại khu vực hành lang, nhà để xe.',
+      'content':
+          'Yêu cầu tất cả cư dân tuân thủ việc phân loại rác tại nguồn và giữ gìn vệ sinh chung tại khu vực hành lang, nhà để xe.',
       'type': 'facility_notice',
-      'created_at': DateTime.now().subtract(const Duration(days: 4)).toIso8601String().substring(0, 19).replaceAll('T', ' '),
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 4))
+          .toIso8601String()
+          .substring(0, 19)
+          .replaceAll('T', ' '),
       'is_read': 0,
     });
   }
@@ -663,7 +684,8 @@ class DatabaseHelper {
   Future<void> checkAndSeedDatabase() async {
     final db = await database;
 
-    final count = Sqflite.firstIntValue(
+    final count =
+        Sqflite.firstIntValue(
           await db.rawQuery('SELECT COUNT(*) FROM rooms'),
         ) ??
         0;
@@ -671,9 +693,18 @@ class DatabaseHelper {
 
     // Lấy hoặc tạo facility mặc định
     Future<int> getOrCreate(String name, String address) async {
-      final rows = await db.query('facilities', columns: ['id'], where: 'name = ?', whereArgs: [name]);
+      final rows = await db.query(
+        'facilities',
+        columns: ['id'],
+        where: 'name = ?',
+        whereArgs: [name],
+      );
       if (rows.isNotEmpty) return rows.first['id'] as int;
-      return db.insert('facilities', {'name': name, 'address': address, 'status': 1});
+      return db.insert('facilities', {
+        'name': name,
+        'address': address,
+        'status': 1,
+      });
     }
 
     final Map<String, int> facilityIds = {
@@ -689,7 +720,9 @@ class DatabaseHelper {
 
     bool seeded = false;
     try {
-      final jsonString = await rootBundle.loadString('docs/data/batdongsan_hcm_rooms_sample.json');
+      final jsonString = await rootBundle.loadString(
+        'docs/data/batdongsan_hcm_rooms_sample.json',
+      );
       final data = json.decode(jsonString);
       final listings = data['listings'] as List<dynamic>;
 
@@ -697,18 +730,31 @@ class DatabaseHelper {
 
       int _startNum(String d) {
         switch (d) {
-          case 'Quan 1': return 101;
-          case 'Quan 3': return 201;
-          case 'Quan 5': return 501;
-          case 'Quan 7': return 701;
-          case 'Quan 9': return 901;
-          case 'Quan 10': return 1001;
-          case 'Binh Thanh': return 801;
-          case 'Tan Binh': return 1101;
-          case 'Tan Phu': return 1201;
-          case 'Go Vap': return 601;
-          case 'TP Thu Duc': case 'Thu Duc': return 1301;
-          default: return 1401;
+          case 'Quan 1':
+            return 101;
+          case 'Quan 3':
+            return 201;
+          case 'Quan 5':
+            return 501;
+          case 'Quan 7':
+            return 701;
+          case 'Quan 9':
+            return 901;
+          case 'Quan 10':
+            return 1001;
+          case 'Binh Thanh':
+            return 801;
+          case 'Tan Binh':
+            return 1101;
+          case 'Tan Phu':
+            return 1201;
+          case 'Go Vap':
+            return 601;
+          case 'TP Thu Duc':
+          case 'Thu Duc':
+            return 1301;
+          default:
+            return 1401;
         }
       }
 
@@ -747,9 +793,12 @@ class DatabaseHelper {
         roomCounts[district] = currentCount + 1;
 
         String status = 'empty';
-        if (roomNumber == '101' && district == 'Quan 1') status = 'rented';
-        else if (roomNumber == '201' && district == 'Quan 3') status = 'rented';
-        else if (roomNumber == '202' && district == 'Quan 3') status = 'maintenance';
+        if (roomNumber == '101' && district == 'Quan 1')
+          status = 'rented';
+        else if (roomNumber == '201' && district == 'Quan 3')
+          status = 'rented';
+        else if (roomNumber == '202' && district == 'Quan 3')
+          status = 'maintenance';
 
         await db.insert('rooms', {
           'facility_id': facilityId,
@@ -759,7 +808,9 @@ class DatabaseHelper {
           'max_tenants': (district == 'Quan 1') ? 2 : 3,
           'status': status,
           'description': 'Diện tích: ${area}m². $title',
-          'image_url': defaultRoomImages[(int.tryParse(roomNumber) ?? 0) % defaultRoomImages.length],
+          'image_url':
+              defaultRoomImages[(int.tryParse(roomNumber) ?? 0) %
+                  defaultRoomImages.length],
           'amenities': json.encode(amenities),
         });
       }
@@ -772,29 +823,64 @@ class DatabaseHelper {
       final fac1 = facilityIds['Quan 1']!;
       final fac2 = facilityIds['Quan 3']!;
       await db.insert('rooms', {
-        'facility_id': fac1, 'room_number': '101', 'price': 4500000.0,
-        'deposit': 9000000.0, 'max_tenants': 2, 'status': 'rented',
+        'facility_id': fac1,
+        'room_number': '101',
+        'price': 4500000.0,
+        'deposit': 9000000.0,
+        'max_tenants': 2,
+        'status': 'rented',
         'description': 'Diện tích: 22m². Phòng thoáng mát trung tâm Quận 1.',
         'image_url': defaultRoomImages[0],
-        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Tủ lạnh']),
+        'amenities': json.encode([
+          'Điều hoà',
+          'WC riêng',
+          'Wifi',
+          'Bãi xe',
+          'Tủ lạnh',
+        ]),
       });
       await db.insert('rooms', {
-        'facility_id': fac1, 'room_number': '102', 'price': 4800000.0,
-        'deposit': 9600000.0, 'max_tenants': 2, 'status': 'empty',
+        'facility_id': fac1,
+        'room_number': '102',
+        'price': 4800000.0,
+        'deposit': 9600000.0,
+        'max_tenants': 2,
+        'status': 'empty',
         'description': 'Diện tích: 30m². Căn hộ mini có ban công gần Quận 1.',
         'image_url': defaultRoomImages[1],
-        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Tủ lạnh', 'Ban công']),
+        'amenities': json.encode([
+          'Điều hoà',
+          'WC riêng',
+          'Wifi',
+          'Bãi xe',
+          'Tủ lạnh',
+          'Ban công',
+        ]),
       });
       await db.insert('rooms', {
-        'facility_id': fac2, 'room_number': '201', 'price': 5200000.0,
-        'deposit': 10000000.0, 'max_tenants': 3, 'status': 'rented',
+        'facility_id': fac2,
+        'room_number': '201',
+        'price': 5200000.0,
+        'deposit': 10000000.0,
+        'max_tenants': 3,
+        'status': 'rented',
         'description': 'Diện tích: 25m². Phòng studio trung tâm Quận 3.',
         'image_url': defaultRoomImages[2],
-        'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi', 'Bãi xe', 'Ban công']),
+        'amenities': json.encode([
+          'Điều hoà',
+          'WC riêng',
+          'Wifi',
+          'Bãi xe',
+          'Ban công',
+        ]),
       });
       await db.insert('rooms', {
-        'facility_id': fac2, 'room_number': '202', 'price': 5500000.0,
-        'deposit': 11000000.0, 'max_tenants': 3, 'status': 'maintenance',
+        'facility_id': fac2,
+        'room_number': '202',
+        'price': 5500000.0,
+        'deposit': 11000000.0,
+        'max_tenants': 3,
+        'status': 'maintenance',
         'description': 'Diện tích: 20m². Phòng yên tĩnh gần Lê Văn Sỹ Quận 3.',
         'image_url': defaultRoomImages[3],
         'amenities': json.encode(['Điều hoà', 'WC riêng', 'Wifi']),
@@ -822,6 +908,49 @@ class DatabaseHelper {
       return UserModel.fromMap(maps.first, id: maps.first['id']?.toString());
     }
     return null;
+  }
+
+  Future<UserModel?> loginByEmail(String email, String password) async {
+    final db = await instance.database;
+    final normalizedEmail = email.trim().toLowerCase();
+    final maps = await db.query(
+      'users',
+      where: 'LOWER(email) = ? AND password = ?',
+      whereArgs: [normalizedEmail, password],
+      limit: 1,
+    );
+
+    if (maps.isNotEmpty) {
+      await db.update(
+        'users',
+        {'is_logged_in': 1},
+        where: 'id = ?',
+        whereArgs: [maps.first['id']],
+      );
+      return UserModel.fromMap(
+        maps.first,
+        id: (maps.first['firebase_uid'] as String?) ??
+            maps.first['id']?.toString(),
+      );
+    }
+    return null;
+  }
+
+  Future<UserModel?> getUserByEmail(String email) async {
+    final db = await instance.database;
+    final normalizedEmail = email.trim().toLowerCase();
+    final maps = await db.query(
+      'users',
+      where: 'LOWER(email) = ?',
+      whereArgs: [normalizedEmail],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return UserModel.fromMap(
+      maps.first,
+      id: (maps.first['firebase_uid'] as String?) ??
+          maps.first['id']?.toString(),
+    );
   }
 
   Future<void> logout(int userId) async {
@@ -871,6 +1000,20 @@ class DatabaseHelper {
       {'password': newPassword},
       where: 'id = ?',
       whereArgs: [userId],
+    );
+  }
+
+  Future<int> updateUserPasswordByEmail(
+    String email,
+    String newPassword,
+  ) async {
+    final db = await instance.database;
+    final normalizedEmail = email.trim().toLowerCase();
+    return await db.update(
+      'users',
+      {'password': newPassword},
+      where: 'LOWER(email) = ?',
+      whereArgs: [normalizedEmail],
     );
   }
 
@@ -1216,18 +1359,22 @@ class DatabaseHelper {
   }
 
   // --- Notifications CRUD ---
-  Future<List<NotificationModel>> getNotificationsForUser(int userId, {int? facilityId}) async {
+  Future<List<NotificationModel>> getNotificationsForUser(
+    int userId, {
+    int? facilityId,
+  }) async {
     final db = await instance.database;
     String whereClause = 'user_id = ?';
     List<dynamic> whereArgs = [userId];
-    
+
     if (facilityId != null) {
-      whereClause += ' OR facility_id = ? OR (user_id IS NULL AND facility_id IS NULL)';
+      whereClause +=
+          ' OR facility_id = ? OR (user_id IS NULL AND facility_id IS NULL)';
       whereArgs.add(facilityId);
     } else {
       whereClause += ' OR (user_id IS NULL AND facility_id IS NULL)';
     }
-    
+
     final maps = await db.query(
       'notifications',
       where: whereClause,
@@ -1251,15 +1398,16 @@ class DatabaseHelper {
     final db = await instance.database;
     String whereClause = '(user_id = ?';
     List<dynamic> whereArgs = [userId];
-    
+
     if (facilityId != null) {
-      whereClause += ' OR facility_id = ? OR (user_id IS NULL AND facility_id IS NULL)';
+      whereClause +=
+          ' OR facility_id = ? OR (user_id IS NULL AND facility_id IS NULL)';
       whereArgs.add(facilityId);
     } else {
       whereClause += ' OR (user_id IS NULL AND facility_id IS NULL)';
     }
     whereClause += ') AND is_read = 0';
-    
+
     return await db.update(
       'notifications',
       {'is_read': 1},
@@ -1644,7 +1792,12 @@ class DatabaseHelper {
 
   Future<List<RentalRequestModel>> getPendingRentalRequests() async {
     final db = await instance.database;
-    final maps = await db.query('rental_requests', where: 'status = ?', whereArgs: ['pending'], orderBy: 'created_at DESC');
+    final maps = await db.query(
+      'rental_requests',
+      where: 'status = ?',
+      whereArgs: ['pending'],
+      orderBy: 'created_at DESC',
+    );
     return maps.map((m) => RentalRequestModel.fromMap(m)).toList();
   }
 
@@ -1666,7 +1819,12 @@ class DatabaseHelper {
 
     await db.transaction((txn) async {
       // 1. Get local user ID
-      final userMaps = await txn.query('users', columns: ['id'], where: 'firebase_uid = ?', whereArgs: [tenantUid]);
+      final userMaps = await txn.query(
+        'users',
+        columns: ['id'],
+        where: 'firebase_uid = ?',
+        whereArgs: [tenantUid],
+      );
       int? localUserId;
       if (userMaps.isNotEmpty) {
         localUserId = userMaps.first['id'] as int;
@@ -1674,7 +1832,11 @@ class DatabaseHelper {
 
       // 2. Insert or update tenant
       int tenantId;
-      final tenantMaps = await txn.query('tenants', where: 'cccd = ?', whereArgs: [cccd]);
+      final tenantMaps = await txn.query(
+        'tenants',
+        where: 'cccd = ?',
+        whereArgs: [cccd],
+      );
       if (tenantMaps.isNotEmpty) {
         tenantId = tenantMaps.first['id'] as int;
         await txn.update(
@@ -1714,8 +1876,15 @@ class DatabaseHelper {
       final endDateStr = end.toIso8601String().substring(0, 10);
 
       // 5. Get room price for deposit
-      final roomMaps = await txn.query('rooms', columns: ['price'], where: 'id = ?', whereArgs: [roomId]);
-      final double price = roomMaps.isNotEmpty ? (roomMaps.first['price'] as num).toDouble() : 0.0;
+      final roomMaps = await txn.query(
+        'rooms',
+        columns: ['price'],
+        where: 'id = ?',
+        whereArgs: [roomId],
+      );
+      final double price = roomMaps.isNotEmpty
+          ? (roomMaps.first['price'] as num).toDouble()
+          : 0.0;
 
       // 6. Create contract
       await txn.insert('contracts', {
@@ -1739,15 +1908,26 @@ class DatabaseHelper {
 
       // 8. Create local congratulatory notification for the tenant
       if (localUserId != null) {
-        final roomNumberResult = await txn.query('rooms', columns: ['room_number'], where: 'id = ?', whereArgs: [roomId]);
-        final roomNumber = roomNumberResult.isNotEmpty ? roomNumberResult.first['room_number'] as String : '';
-        
+        final roomNumberResult = await txn.query(
+          'rooms',
+          columns: ['room_number'],
+          where: 'id = ?',
+          whereArgs: [roomId],
+        );
+        final roomNumber = roomNumberResult.isNotEmpty
+            ? roomNumberResult.first['room_number'] as String
+            : '';
+
         await txn.insert('notifications', {
           'user_id': localUserId,
           'title': 'Chúc mừng! Thuê phòng thành công',
-          'content': 'Chúc mừng! Yêu cầu thuê phòng $roomNumber của bạn đã được duyệt thành công. Hợp đồng thuê đã được kích hoạt.',
+          'content':
+              'Chúc mừng! Yêu cầu thuê phòng $roomNumber của bạn đã được duyệt thành công. Hợp đồng thuê đã được kích hoạt.',
           'type': 'payment_success',
-          'created_at': DateTime.now().toIso8601String().substring(0, 19).replaceAll('T', ' '),
+          'created_at': DateTime.now()
+              .toIso8601String()
+              .substring(0, 19)
+              .replaceAll('T', ' '),
           'is_read': 0,
         });
       }
@@ -1766,7 +1946,9 @@ class DatabaseHelper {
   }
 
   /// Resolves the room, active contract, roommates, and invoices for the logged-in tenant.
-  Future<Map<String, dynamic>?> getTenantActiveRoomAndContract(String firebaseUid) async {
+  Future<Map<String, dynamic>?> getTenantActiveRoomAndContract(
+    String firebaseUid,
+  ) async {
     final db = await instance.database;
 
     // 1. Get local user ID
@@ -1817,11 +1999,14 @@ class DatabaseHelper {
     final roomData = roomMaps.isNotEmpty ? roomMaps.first : null;
 
     // 5. Get roommates (other tenants who have active contracts in the same room)
-    final roommatesMaps = await db.rawQuery('''
+    final roommatesMaps = await db.rawQuery(
+      '''
       SELECT t.* FROM tenants t
       JOIN contracts c ON c.tenant_id = t.id
       WHERE c.room_id = ? AND c.status = 'active' AND t.id != ?
-    ''', [roomId, tenantId]);
+    ''',
+      [roomId, tenantId],
+    );
 
     // 6. Get invoices for this contract
     final invoiceMaps = await db.query(
@@ -1895,4 +2080,3 @@ class DatabaseHelper {
     return history;
   }
 }
-

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tenant_management_app/models/user.dart';
+import 'package:tenant_management_app/services/database_helper.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -98,12 +99,21 @@ class AuthService {
     String email,
     String password,
   ) async {
-    final credential = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    if (credential.user == null) return null;
-    return getCurrentUserModel();
+    try {
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      if (credential.user == null) return null;
+      return getCurrentUserModel();
+    } on FirebaseAuthException catch (e, stackTrace) {
+      final localUser = await DatabaseHelper.instance.loginByEmail(
+        email,
+        password,
+      );
+      if (localUser != null) return localUser;
+      Error.throwWithStackTrace(e, stackTrace);
+    }
   }
 
   // ─── Đăng ký bằng Email/Password ────────────────────────────────────────────
@@ -216,6 +226,47 @@ class AuthService {
   /// Gửi email đặt lại mật khẩu.
   static Future<void> sendPasswordReset(String email) async {
     await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  static Future<void> resetPasswordWithoutVerification({
+    required String email,
+    required String newPassword,
+  }) async {
+    final normalizedEmail = email.trim();
+    final db = DatabaseHelper.instance;
+    var localUser = await db.getUserByEmail(normalizedEmail);
+
+    if (localUser == null) {
+      final snapshot = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: normalizedEmail)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final cloudUser = UserModel.fromFirestore(snapshot.docs.first);
+        await db.syncUserToSQLite(cloudUser);
+        localUser = cloudUser;
+      }
+    }
+
+    if (localUser == null) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No local user found for this email.',
+      );
+    }
+
+    final updatedRows = await db.updateUserPasswordByEmail(
+      normalizedEmail,
+      newPassword,
+    );
+    if (updatedRows == 0) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No local user found for this email.',
+      );
+    }
   }
 
   /// Kiểm tra mã đặt lại mật khẩu và trả về email tương ứng.

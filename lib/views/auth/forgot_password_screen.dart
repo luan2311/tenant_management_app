@@ -226,7 +226,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Nhập email tài khoản để nhận xác thực đặt lại mật khẩu.',
+          'Nhập email tài khoản để tạo mật khẩu mới.',
           style: TextStyle(fontSize: 13, color: kOnSurfaceVariant, height: 1.5),
         ),
         const SizedBox(height: 28),
@@ -240,7 +240,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 24),
         _buildPrimaryButton(
-          label: 'Gửi link đặt lại',
+          label: 'Tiếp tục',
           icon: Icons.mark_email_read_outlined,
           onPressed: _sendResetEmail,
         ),
@@ -265,7 +265,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Email đã gửi tới ${_emailController.text.trim()}. Nhập mật khẩu mới của bạn bên dưới.',
+          'Đặt mật khẩu mới cho ${_emailController.text.trim()}.',
           style: const TextStyle(
             fontSize: 13,
             color: kOnSurfaceVariant,
@@ -303,9 +303,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         SizedBox(
           width: double.infinity,
           child: TextButton.icon(
-            onPressed: _isLoading ? null : _sendResetEmail,
+            onPressed: _isLoading
+                ? null
+                : () => setState(() {
+                    _resetCode = null;
+                    _emailSent = false;
+                  }),
             icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('Gửi lại link đặt lại'),
+            label: const Text('Đổi email'),
           ),
         ),
         const SizedBox(height: 10),
@@ -495,6 +500,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
+    if (email.isNotEmpty) {
+      _resetCode = 'local-reset';
+      setState(() => _emailSent = true);
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       await AuthService.sendPasswordReset(email);
@@ -516,9 +527,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _confirmNewPassword() async {
     final code = _resetCode;
+    final email = _emailController.text.trim();
     final newPassword = _newPasswordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
+    if (!_isValidEmail(email)) {
+      _showSnackBar('Vui lÃ²ng nháº­p email há»£p lá»‡.');
+      return;
+    }
     if (code == null) {
       _showSnackBar('Vui lòng mở link đặt lại mật khẩu từ email để xác thực.');
       return;
@@ -534,9 +550,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await AuthService.verifyPasswordResetCode(code);
-      await AuthService.confirmPasswordReset(
-        code: code,
+      await AuthService.resetPasswordWithoutVerification(
+        email: email,
         newPassword: newPassword,
       );
       if (!mounted) return;

@@ -21,6 +21,7 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
   final _maxTenantsController = TextEditingController(text: '2');
   int? _selectedFacilityId;
   String _selectedStatus = 'empty';
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -52,9 +53,13 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
   }
 
   Future<void> _submitForm() async {
+    if (_isSubmitting) return;
+
     if (!_formKey.currentState!.validate() || _selectedFacilityId == null) {
       return;
     }
+
+    setState(() => _isSubmitting = true);
 
     final room = RoomModel(
       id: widget.room?.id,
@@ -70,9 +75,17 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
     );
 
     final appState = context.read<AppState>();
-    final success = widget.room == null
-        ? await appState.addNewRoom(room)
-        : await appState.updateRoom(room);
+    var success = false;
+    try {
+      success = widget.room == null
+          ? await appState.addNewRoom(room)
+          : await appState.updateRoom(room);
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -195,16 +208,19 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
                           Icons.savings_outlined,
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty)
+                          if (value == null || value.trim().isEmpty) {
                             return 'Vui lòng nhập tiền đặt cọc';
+                          }
                           final parsed = double.tryParse(value.trim());
-                          if (parsed == null || parsed < 0)
+                          if (parsed == null || parsed < 0) {
                             return 'Tiền cọc không được là số âm';
+                          }
                           final price = double.tryParse(
                             _priceController.text.trim(),
                           );
-                          if (price != null && parsed >= price)
+                          if (price != null && parsed >= price) {
                             return 'Tiền cọc phải nhỏ hơn tiền thuê';
+                          }
                           return null;
                         },
                       ),
@@ -217,11 +233,13 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
                           Icons.people_alt_outlined,
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty)
+                          if (value == null || value.trim().isEmpty) {
                             return 'Vui lòng nhập số người ở tối đa';
+                          }
                           final parsed = int.tryParse(value);
-                          if (parsed == null || parsed <= 0)
+                          if (parsed == null || parsed <= 0) {
                             return 'Số người ở tối đa phải lớn hơn 0';
+                          }
                           return null;
                         },
                       ),
@@ -248,13 +266,14 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
                           ),
                         ],
                         onChanged: (value) {
-                          if (value != null)
+                          if (value != null) {
                             setState(() => _selectedStatus = value);
+                          }
                         },
                       ),
                       const SizedBox(height: 28),
                       ElevatedButton.icon(
-                        onPressed: appState.isLoading ? null : _submitForm,
+                        onPressed: _isSubmitting ? null : _submitForm,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.sanctuaryDark,
                           foregroundColor: Colors.white,
@@ -264,7 +283,7 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
                           ),
                           elevation: 0,
                         ),
-                        icon: appState.isLoading
+                        icon: _isSubmitting
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
@@ -310,14 +329,14 @@ class _AdminAddRoomPageState extends State<AdminAddRoomPage> {
       labelText: label,
       prefixIcon: Icon(icon, color: AppColors.sanctuaryDark, size: 20),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.58),
+      fillColor: Colors.white.withValues(alpha: 0.58),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.72)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.72)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
@@ -349,7 +368,7 @@ class _SectionTitle extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundColor: AppColors.sanctuaryBlue.withOpacity(0.62),
+          backgroundColor: AppColors.sanctuaryBlue.withValues(alpha: 0.62),
           child: Icon(icon, color: AppColors.sanctuaryDark, size: 19),
         ),
         const SizedBox(width: 12),

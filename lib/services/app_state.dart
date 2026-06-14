@@ -203,9 +203,7 @@ class AppState extends ChangeNotifier {
     unpaidInvoicesCount = await _db.getUnpaidInvoicesCount();
     monthlyRevenue = await _db.getRevenueByMonth();
     monthlyDebt = await _db.getDebtByMonth();
-    revenueSummary = await _db.getRevenueSummary(
-      billingMonth: currentBillingMonth,
-    );
+    revenueSummary = await _db.getRevenueSummary();
     debtorList = await _db.getDebtorList(billingMonth: currentBillingMonth);
 
     applyFilters();

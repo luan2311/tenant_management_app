@@ -1,7 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tenant_management_app/services/app_state.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 import 'package:tenant_management_app/services/auth_service.dart';
+import 'package:tenant_management_app/views/admin/admin_main_layout.dart';
+import 'package:tenant_management_app/views/tenant_shell.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
@@ -507,7 +511,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await AuthService.signInWithEmail(email, password);
+      final user = await AuthService.signInWithEmail(email, password);
+      if (!mounted) return;
+      if (FirebaseAuth.instance.currentUser == null && user != null) {
+        await context.read<AppState>().loginWithFirebaseUser(user);
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => user.role == 'admin'
+                ? const AdminMainLayout()
+                : const TenantShell(),
+          ),
+        );
+      }
       // _SessionGate trong main.dart tự route theo role (admin/tenant)
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;

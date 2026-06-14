@@ -28,7 +28,8 @@ class _AdminStatisticsPageState extends State<AdminStatisticsPage> {
         .toList();
     allMonths.sort((a, b) => b.compareTo(a));
 
-    if (_selectedChartMonth != 'all' && !allMonths.contains(_selectedChartMonth)) {
+    if (_selectedChartMonth != 'all' &&
+        !allMonths.contains(_selectedChartMonth)) {
       _selectedChartMonth = 'all';
     }
 
@@ -50,7 +51,7 @@ class _AdminStatisticsPageState extends State<AdminStatisticsPage> {
         children: [
           SanctuaryHeader(
             title: 'Thống kê',
-            subtitle: 'Doanh thu thực nhận và hóa đơn chưa thanh toán tháng ${appState.currentBillingMonth}.',
+            subtitle: 'Doanh thu thực nhận và hóa đơn chưa thanh toán.',
             trailing: SoftIconButton(
               icon: Icons.cloud_off_outlined,
               onPressed: appState.runOfflineHealthCheck,
@@ -62,7 +63,7 @@ class _AdminStatisticsPageState extends State<AdminStatisticsPage> {
               Expanded(
                 child: _SummaryCard(
                   icon: Icons.payments_outlined,
-                  label: 'Đã thu tháng này',
+                  label: 'Đã thu',
                   value: _formatMoney(summary['paid'] ?? 0.0),
                   color: AppColors.badgeEmptyText,
                 ),
@@ -111,13 +112,19 @@ class _AdminStatisticsPageState extends State<AdminStatisticsPage> {
                 children: [
                   const CircleAvatar(
                     backgroundColor: AppColors.badgeEmptyBg,
-                    child: Icon(Icons.check_rounded, color: AppColors.badgeEmptyText),
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: AppColors.badgeEmptyText,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
                       'Không có hóa đơn chưa thanh toán trong tháng này.',
-                      style: AppStyles.body(context, fontWeight: FontWeight.w800),
+                      style: AppStyles.body(
+                        context,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ],
@@ -169,10 +176,22 @@ class _SummaryCard extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppStyles.title(context, color: AppColors.sanctuaryInk, fontSize: 17, fontWeight: FontWeight.w900),
+            style: AppStyles.title(
+              context,
+              color: AppColors.sanctuaryInk,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 3),
-          Text(label, style: AppStyles.caption(context, fontWeight: FontWeight.w800, fontSize: 11)),
+          Text(
+            label,
+            style: AppStyles.caption(
+              context,
+              fontWeight: FontWeight.w800,
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );
@@ -195,8 +214,13 @@ class _DebtChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entries = monthlyDebt.entries.toList();
-    final maxDebt = entries.fold<double>(0, (max, entry) => entry.value > max ? entry.value : max);
-    final maxY = maxDebt <= 0 ? 8.0 : (maxDebt / 1000000 * 1.25).clamp(6.0, 100.0).toDouble();
+    final maxDebt = entries.fold<double>(
+      0,
+      (max, entry) => entry.value > max ? entry.value : max,
+    );
+    final maxY = maxDebt <= 0
+        ? 8.0
+        : (maxDebt / 1000000 * 1.25).clamp(6.0, 100.0).toDouble();
 
     return GlassmorphicContainer(
       height: 330,
@@ -229,7 +253,11 @@ class _DebtChart extends StatelessWidget {
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: selectedMonth,
-                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.sanctuaryDark, size: 20),
+                    icon: const Icon(
+                      Icons.arrow_drop_down,
+                      color: AppColors.sanctuaryDark,
+                      size: 20,
+                    ),
                     dropdownColor: AppColors.backgroundMiddle,
                     style: AppStyles.caption(
                       context,
@@ -260,7 +288,11 @@ class _DebtChart extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: entries.isEmpty || (entries.length == 1 && entries[0].value == 0.0 && selectedMonth == 'all')
+            child:
+                entries.isEmpty ||
+                    (entries.length == 1 &&
+                        entries[0].value == 0.0 &&
+                        selectedMonth == 'all')
                 ? Center(
                     child: Text(
                       'Không có nợ chưa thanh toán.',
@@ -277,11 +309,18 @@ class _DebtChart extends StatelessWidget {
                       borderData: FlBorderData(show: false),
                       gridData: FlGridData(
                         drawVerticalLine: false,
-                        getDrawingHorizontalLine: (_) => FlLine(color: Colors.white.withOpacity(0.72), strokeWidth: 1),
+                        getDrawingHorizontalLine: (_) => FlLine(
+                          color: Colors.white.withOpacity(0.72),
+                          strokeWidth: 1,
+                        ),
                       ),
                       titlesData: FlTitlesData(
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                         leftTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
@@ -304,7 +343,8 @@ class _DebtChart extends StatelessWidget {
                             showTitles: true,
                             getTitlesWidget: (value, meta) {
                               final index = value.toInt();
-                              if (index < 0 || index >= entries.length) return const SizedBox.shrink();
+                              if (index < 0 || index >= entries.length)
+                                return const SizedBox.shrink();
                               final month = entries[index].key.substring(5);
                               return Padding(
                                 padding: const EdgeInsets.only(top: 8),
@@ -334,7 +374,8 @@ class _DebtChart extends StatelessWidget {
                                 backDrawRodData: BackgroundBarChartRodData(
                                   show: true,
                                   toY: maxY,
-                                  color: AppColors.badgeMaintenanceBg.withOpacity(0.4),
+                                  color: AppColors.badgeMaintenanceBg
+                                      .withOpacity(0.4),
                                 ),
                               ),
                             ],
@@ -376,10 +417,16 @@ class _OfflineScanCard extends StatelessWidget {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: isHealthy ? AppColors.badgeEmptyBg : AppColors.badgeMaintenanceBg,
+            backgroundColor: isHealthy
+                ? AppColors.badgeEmptyBg
+                : AppColors.badgeMaintenanceBg,
             child: Icon(
-              isHealthy ? Icons.offline_bolt_outlined : Icons.error_outline_rounded,
-              color: isHealthy ? AppColors.badgeEmptyText : AppColors.badgeMaintenanceText,
+              isHealthy
+                  ? Icons.offline_bolt_outlined
+                  : Icons.error_outline_rounded,
+              color: isHealthy
+                  ? AppColors.badgeEmptyText
+                  : AppColors.badgeMaintenanceText,
             ),
           ),
           const SizedBox(width: 14),
@@ -388,11 +435,19 @@ class _OfflineScanCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isHealthy ? 'Offline scan ổn định' : 'Offline scan cần kiểm tra',
+                  isHealthy
+                      ? 'Offline scan ổn định'
+                      : 'Offline scan cần kiểm tra',
                   style: AppStyles.body(context, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 3),
-                Text('$passed/$total kiểm tra SQLite đã hoàn tất.', style: AppStyles.caption(context, fontWeight: FontWeight.w700)),
+                Text(
+                  '$passed/$total kiểm tra SQLite đã hoàn tất.',
+                  style: AppStyles.caption(
+                    context,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
@@ -417,25 +472,38 @@ class _DebtorTile extends StatelessWidget {
         children: [
           const CircleAvatar(
             backgroundColor: AppColors.badgeMaintenanceBg,
-            child: Icon(Icons.person_pin_circle_outlined, color: AppColors.badgeMaintenanceText),
+            child: Icon(
+              Icons.person_pin_circle_outlined,
+              color: AppColors.badgeMaintenanceText,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${debtor['tenant_name']}', style: AppStyles.body(context, fontWeight: FontWeight.w900)),
+                Text(
+                  '${debtor['tenant_name']}',
+                  style: AppStyles.body(context, fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 3),
                 Text(
                   'Phòng ${debtor['room_number']} - ${debtor['tenant_phone']}',
-                  style: AppStyles.caption(context, fontWeight: FontWeight.w700),
+                  style: AppStyles.caption(
+                    context,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
           ),
           Text(
             _formatMoney((debtor['total_price'] as num).toDouble()),
-            style: AppStyles.caption(context, color: AppColors.badgeMaintenanceText, fontWeight: FontWeight.w900),
+            style: AppStyles.caption(
+              context,
+              color: AppColors.badgeMaintenanceText,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),
