@@ -7,8 +7,16 @@ import 'package:tenant_management_app/services/app_state.dart';
 import 'package:tenant_management_app/theme/styles.dart';
 import 'add_contract_screen.dart';
 
-class AdminContractsPage extends StatelessWidget {
+class AdminContractsPage extends StatefulWidget {
   const AdminContractsPage({super.key});
+
+  @override
+  State<AdminContractsPage> createState() => _AdminContractsPageState();
+}
+
+class _AdminContractsPageState extends State<AdminContractsPage> {
+  // 'all' | 'active' | 'ended'
+  String _filter = 'all';
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +27,17 @@ class AdminContractsPage extends StatelessWidget {
         .where((item) => item.status == 'active')
         .length;
     final endingSoonCount = contracts.where(_isEndingSoon).length;
+
+    final visibleContracts = contracts.where((item) {
+      switch (_filter) {
+        case 'active':
+          return item.status == 'active';
+        case 'ended':
+          return item.status != 'active';
+        default:
+          return true;
+      }
+    }).toList();
 
     return RefreshIndicator(
       color: AppColors.sanctuaryDark,
@@ -59,8 +78,13 @@ class AdminContractsPage extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 22),
-          if (contracts.isEmpty)
+          const SizedBox(height: 18),
+          _FilterBar(
+            selected: _filter,
+            onSelected: (value) => setState(() => _filter = value),
+          ),
+          const SizedBox(height: 18),
+          if (visibleContracts.isEmpty)
             GlassmorphicContainer(
               height: 240,
               borderRadius: 22,
@@ -75,7 +99,9 @@ class AdminContractsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Chưa có hợp đồng nào.',
+                    contracts.isEmpty
+                        ? 'Chưa có hợp đồng nào.'
+                        : 'Không có hợp đồng phù hợp bộ lọc.',
                     style: AppStyles.body(
                       context,
                       color: AppColors.textSecondary,
@@ -86,7 +112,7 @@ class AdminContractsPage extends StatelessWidget {
               ),
             )
           else
-            ...contracts.map((contract) {
+            ...visibleContracts.map((contract) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: _ContractCard(contract: contract),
@@ -300,8 +326,8 @@ class _ContractCard extends StatelessWidget {
           success
               ? 'Đã kết thúc hợp đồng.'
               : (detail == null || detail.isEmpty
-                  ? 'Không thể kết thúc hợp đồng. Vui lòng thử lại.'
-                  : 'Không thể kết thúc hợp đồng: $detail'),
+                    ? 'Không thể kết thúc hợp đồng. Vui lòng thử lại.'
+                    : 'Không thể kết thúc hợp đồng: $detail'),
         ),
         duration: success
             ? const Duration(seconds: 4)
@@ -331,6 +357,86 @@ class _ContractCard extends StatelessWidget {
           AppColors.badgeEmptyText,
         );
     }
+  }
+}
+
+class _FilterBar extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  const _FilterBar({required this.selected, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    const options = [
+      ('all', 'Tất cả'),
+      ('active', 'Đang hiệu lực'),
+      ('ended', 'Đã kết thúc'),
+    ];
+
+    return Row(
+      children: [
+        for (final option in options) ...[
+          Expanded(
+            child: _FilterChip(
+              label: option.$2,
+              isSelected: selected == option.$1,
+              onTap: () => onSelected(option.$1),
+            ),
+          ),
+          if (option != options.last) const SizedBox(width: 10),
+        ],
+      ],
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.sanctuaryDark
+                : Colors.white.withValues(alpha: 0.42),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.sanctuaryDark
+                  : Colors.white.withValues(alpha: 0.7),
+            ),
+          ),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppStyles.caption(
+              context,
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

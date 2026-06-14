@@ -18,7 +18,9 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
     final activeData = appState.activeRoomData;
 
     // Check if the tenant doesn't have active room data
-    if (activeData == null || activeData['contract'] == null || activeData['room'] == null) {
+    if (activeData == null ||
+        activeData['contract'] == null ||
+        activeData['room'] == null) {
       return Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
@@ -28,7 +30,15 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
             icon: const Icon(Icons.arrow_back, color: Colors.black87),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text('Hóa đơn của tôi', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16)),
+          title: const Text(
+            'Hóa đơn của tôi',
+            style: TextStyle(
+              fontFamily: 'Be Vietnam Pro',
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
           centerTitle: true,
         ),
         body: const SafeArea(
@@ -38,17 +48,30 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.receipt_long_outlined, size: 80, color: Color(0xFF94A3B8)),
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 80,
+                    color: Color(0xFF94A3B8),
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'Chưa có hóa đơn nào',
-                    style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    style: TextStyle(
+                      fontFamily: 'Be Vietnam Pro',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
                   ),
                   SizedBox(height: 8),
                   Text(
                     'Danh sách hóa đơn tiền phòng sẽ hiển thị tại đây sau khi chủ trọ tạo hóa đơn hàng tháng.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 13, color: Colors.black54),
+                    style: TextStyle(
+                      fontFamily: 'Be Vietnam Pro',
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
                   ),
                 ],
               ),
@@ -58,14 +81,17 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
       );
     }
 
-    final List<dynamic> allInvoices = activeData['invoices'] as List<dynamic>? ?? [];
+    final List<dynamic> allInvoices =
+        activeData['invoices'] as List<dynamic>? ?? [];
     final room = activeData['room'];
     final roomNumber = room['room_number'] as String? ?? '';
     final double roomPrice = (room['price'] as num).toDouble();
 
     // Filter invoices by tab
     final statusFilter = _selectedTab == 0 ? 'unpaid' : 'paid';
-    final filteredInvoices = allInvoices.where((inv) => inv['status'] == statusFilter).toList();
+    final filteredInvoices = allInvoices
+        .where((inv) => inv['status'] == statusFilter)
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -73,7 +99,15 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Text('Hóa đơn của tôi - Lumiere', style: TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16)),
+        title: const Text(
+          'Hóa đơn của tôi - Lumiere',
+          style: TextStyle(
+            fontFamily: 'Be Vietnam Pro',
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
@@ -84,15 +118,33 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Hóa đơn của bạn', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+            const Text(
+              'Hóa đơn của bạn',
+              style: TextStyle(
+                fontFamily: 'Be Vietnam Pro',
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
             const SizedBox(height: 4),
-            const Text('Quản lý và thanh toán các khoản phí lưu trú.', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 13, color: Colors.black54)),
+            const Text(
+              'Quản lý và thanh toán các khoản phí lưu trú.',
+              style: TextStyle(
+                fontFamily: 'Be Vietnam Pro',
+                fontSize: 13,
+                color: Colors.black54,
+              ),
+            ),
             const SizedBox(height: 20),
 
             // Tab Selection Header
             Container(
               padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(24)),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(24),
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -101,10 +153,17 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: _selectedTab == 0 ? Colors.white : Colors.transparent,
+                          color: _selectedTab == 0
+                              ? Colors.white
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: _selectedTab == 0
-                              ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                  ),
+                                ]
                               : null,
                         ),
                         child: Center(
@@ -114,7 +173,9 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
                               fontFamily: 'Be Vietnam Pro',
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: _selectedTab == 0 ? const Color(0xFF0F172A) : Colors.black54,
+                              color: _selectedTab == 0
+                                  ? const Color(0xFF0F172A)
+                                  : Colors.black54,
                             ),
                           ),
                         ),
@@ -127,10 +188,17 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: _selectedTab == 1 ? Colors.white : Colors.transparent,
+                          color: _selectedTab == 1
+                              ? Colors.white
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: _selectedTab == 1
-                              ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                  ),
+                                ]
                               : null,
                         ),
                         child: Center(
@@ -140,7 +208,9 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
                               fontFamily: 'Be Vietnam Pro',
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: _selectedTab == 1 ? const Color(0xFF0F172A) : Colors.black54,
+                              color: _selectedTab == 1
+                                  ? const Color(0xFF0F172A)
+                                  : Colors.black54,
                             ),
                           ),
                         ),
@@ -160,7 +230,11 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
                         _selectedTab == 0
                             ? 'Không có hóa đơn chưa thanh toán'
                             : 'Không có hóa đơn đã thanh toán',
-                        style: const TextStyle(fontFamily: 'Be Vietnam Pro', color: Colors.black38, fontSize: 14),
+                        style: const TextStyle(
+                          fontFamily: 'Be Vietnam Pro',
+                          color: Colors.black38,
+                          fontSize: 14,
+                        ),
                       ),
                     )
                   : ListView.separated(
@@ -169,20 +243,33 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
                       itemBuilder: (context, index) {
                         final invoice = filteredInvoices[index];
                         final int invoiceId = invoice['id'] as int;
-                        final String billingMonth = invoice['billing_month'] as String;
-                        final double oldElec = (invoice['old_electricity'] as num).toDouble();
-                        final double newElec = (invoice['new_electricity'] as num).toDouble();
-                        final double oldWater = (invoice['old_water'] as num).toDouble();
-                        final double newWater = (invoice['new_water'] as num).toDouble();
-                        final double elecPrice = (invoice['electricity_price'] as num).toDouble();
-                        final double waterPrice = (invoice['water_price'] as num).toDouble();
-                        final double servicePrice = (invoice['service_price'] as num? ?? 0.0).toDouble();
-                        final double otherPrice = (invoice['other_price'] as num? ?? 0.0).toDouble();
-                        final double totalPrice = (invoice['total_price'] as num).toDouble();
-                        final String? paymentDate = invoice['payment_date'] as String?;
+                        final String billingMonth =
+                            invoice['billing_month'] as String;
+                        final double oldElec =
+                            (invoice['old_electricity'] as num).toDouble();
+                        final double newElec =
+                            (invoice['new_electricity'] as num).toDouble();
+                        final double oldWater = (invoice['old_water'] as num)
+                            .toDouble();
+                        final double newWater = (invoice['new_water'] as num)
+                            .toDouble();
+                        final double elecPrice =
+                            (invoice['electricity_price'] as num).toDouble();
+                        final double waterPrice =
+                            (invoice['water_price'] as num).toDouble();
+                        final double servicePrice =
+                            (invoice['service_price'] as num? ?? 0.0)
+                                .toDouble();
+                        final double otherPrice =
+                            (invoice['other_price'] as num? ?? 0.0).toDouble();
+                        final double totalPrice =
+                            (invoice['total_price'] as num).toDouble();
+                        final String? paymentDate =
+                            invoice['payment_date'] as String?;
 
                         final double elecCost = (newElec - oldElec) * elecPrice;
-                        final double waterCost = (newWater - oldWater) * waterPrice;
+                        final double waterCost =
+                            (newWater - oldWater) * waterPrice;
 
                         final roomPriceStr = _formatCurrency(roomPrice);
                         final elecCostStr = _formatCurrency(elecCost);
@@ -197,74 +284,143 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(color: const Color(0xFFE2E8F0)),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text('Tháng $billingMonth', style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 18, fontWeight: FontWeight.bold)),
+                                      Text(
+                                        'Tháng $billingMonth',
+                                        style: const TextStyle(
+                                          fontFamily: 'Be Vietnam Pro',
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                       const SizedBox(height: 4),
                                       Text(
                                         _selectedTab == 0
                                             ? 'Hạn thanh toán: Mùng 5 hàng tháng'
                                             : 'Thanh toán vào: $paymentDate',
-                                        style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 12, color: Colors.black54),
+                                        style: const TextStyle(
+                                          fontFamily: 'Be Vietnam Pro',
+                                          fontSize: 12,
+                                          color: Colors.black54,
+                                        ),
                                       ),
                                     ],
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: _selectedTab == 0 ? const Color(0xFFFECACA) : const Color(0xFFD1FAE5),
+                                      color: _selectedTab == 0
+                                          ? const Color(0xFFFECACA)
+                                          : const Color(0xFFD1FAE5),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Row(
                                       children: [
                                         Icon(
-                                          _selectedTab == 0 ? Icons.error_outline : Icons.check_circle_outline,
-                                          color: _selectedTab == 0 ? const Color(0xFFB91C1C) : const Color(0xFF065F46),
+                                          _selectedTab == 0
+                                              ? Icons.error_outline
+                                              : Icons.check_circle_outline,
+                                          color: _selectedTab == 0
+                                              ? const Color(0xFFB91C1C)
+                                              : const Color(0xFF065F46),
                                           size: 14,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          _selectedTab == 0 ? 'Chưa thanh\ntoán' : 'Đã thanh\ntoán',
+                                          _selectedTab == 0
+                                              ? 'Chưa thanh\ntoán'
+                                              : 'Đã thanh\ntoán',
                                           style: TextStyle(
                                             fontFamily: 'Be Vietnam Pro',
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
-                                            color: _selectedTab == 0 ? const Color(0xFFB91C1C) : const Color(0xFF065F46),
+                                            color: _selectedTab == 0
+                                                ? const Color(0xFFB91C1C)
+                                                : const Color(0xFF065F46),
                                           ),
                                         ),
                                       ],
                                     ),
-                                  )
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 20),
                               const Divider(color: Color(0xFFE2E8F0)),
                               const SizedBox(height: 12),
 
-                              _buildFeeRow('Tiền phòng ($roomNumber)', null, roomPriceStr),
-                              _buildFeeRow('Tiền điện', 'Chỉ số: ${oldElec.toInt()} - ${newElec.toInt()} (${(newElec - oldElec).toInt()} kWh) · ${_formatCurrency(elecPrice)}/kWh', elecCostStr),
-                              _buildFeeRow('Tiền nước', 'Chỉ số: ${oldWater.toInt()} - ${newWater.toInt()} (${(newWater - oldWater).toInt()} m³) · ${_formatCurrency(waterPrice)}/m³', waterCostStr),
-                              _buildFeeRow('Dịch vụ', '(Internet, giữ xe, rác...)', serviceStr),
-                              if (otherPrice > 0) _buildFeeRow('Chi phí khác', 'Chi phí phụ thêm', otherStr),
-                              
+                              _buildFeeRow(
+                                'Tiền phòng ($roomNumber)',
+                                null,
+                                roomPriceStr,
+                              ),
+                              _buildFeeRow(
+                                'Tiền điện',
+                                'Chỉ số: ${oldElec.toInt()} - ${newElec.toInt()} (${(newElec - oldElec).toInt()} kWh) · ${_formatCurrency(elecPrice)}/kWh',
+                                elecCostStr,
+                              ),
+                              _buildFeeRow(
+                                'Tiền nước',
+                                'Chỉ số: ${oldWater.toInt()} - ${newWater.toInt()} (${(newWater - oldWater).toInt()} m³) · ${_formatCurrency(waterPrice)}/m³',
+                                waterCostStr,
+                              ),
+                              _buildFeeRow(
+                                'Dịch vụ',
+                                '(Internet, giữ xe, rác...)',
+                                serviceStr,
+                              ),
+                              if (otherPrice > 0)
+                                _buildFeeRow(
+                                  'Chi phí khác',
+                                  'Chi phí phụ thêm',
+                                  otherStr,
+                                ),
+
                               const SizedBox(height: 12),
                               const Divider(color: Color(0xFFE2E8F0)),
                               const SizedBox(height: 16),
-                              
+
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Tổng cộng', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 16, fontWeight: FontWeight.bold)),
-                                  Text(totalStr, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0369A1))),
+                                  const Text(
+                                    'Tổng cộng',
+                                    style: TextStyle(
+                                      fontFamily: 'Be Vietnam Pro',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    totalStr,
+                                    style: const TextStyle(
+                                      fontFamily: 'Be Vietnam Pro',
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0369A1),
+                                    ),
+                                  ),
                                 ],
                               ),
                               if (_selectedTab == 0) ...[
@@ -276,39 +432,53 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF4A7D96),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
                                       elevation: 0,
                                     ),
-                                    onPressed: () {
-                                      appState.markInvoicePaid(invoiceId).then((success) {
-                                        if (success) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Thanh toán hóa đơn thành công!'),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Gặp lỗi khi thanh toán. Vui lòng thử lại.'),
-                                              backgroundColor: Colors.redAccent,
-                                            ),
-                                          );
-                                        }
-                                      });
+                                    onPressed: () async {
+                                      final success = await appState
+                                          .markInvoicePaid(invoiceId);
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            success
+                                                ? 'Thanh toán hóa đơn thành công!'
+                                                : 'Gặp lỗi khi thanh toán. Vui lòng thử lại.',
+                                          ),
+                                          backgroundColor: success
+                                              ? Colors.green
+                                              : Colors.redAccent,
+                                        ),
+                                      );
                                     },
                                     child: const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.payments_outlined, color: Colors.white),
+                                        Icon(
+                                          Icons.payments_outlined,
+                                          color: Colors.white,
+                                        ),
                                         SizedBox(width: 8),
-                                        Text('Thanh toán hóa đơn', style: TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                                        Text(
+                                          'Thanh toán hóa đơn',
+                                          style: TextStyle(
+                                            fontFamily: 'Be Vietnam Pro',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                )
-                              ]
+                                ),
+                              ],
                             ],
                           ),
                         );
@@ -331,15 +501,38 @@ class _MyInvoiceScreenState extends State<MyInvoiceScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Be Vietnam Pro',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 11, color: Colors.black45)),
-                ]
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: 'Be Vietnam Pro',
+                      fontSize: 11,
+                      color: Colors.black45,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-          Text(price, style: const TextStyle(fontFamily: 'Be Vietnam Pro', fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+          Text(
+            price,
+            style: const TextStyle(
+              fontFamily: 'Be Vietnam Pro',
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
         ],
       ),
     );

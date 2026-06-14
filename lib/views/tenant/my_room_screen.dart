@@ -20,68 +20,82 @@ class MyRoomScreen extends StatelessWidget {
       return Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.meeting_room_outlined,
-                    size: 80,
-                    color: Color(0xFF94A3B8),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Bạn chưa thuê phòng nào',
-                    style: TextStyle(
-                      fontFamily: 'Be Vietnam Pro',
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),
+          child: RefreshIndicator(
+            color: const Color(0xFF2E6486),
+            onRefresh: () => appState.refreshAllData(),
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.meeting_room_outlined,
+                            size: 80,
+                            color: Color(0xFF94A3B8),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Bạn chưa thuê phòng nào',
+                            style: TextStyle(
+                              fontFamily: 'Be Vietnam Pro',
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Hãy chọn phòng phù hợp ở trang Khám phá và gửi yêu cầu thuê phòng cho chủ trọ nhé!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Be Vietnam Pro',
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          if (appState.contractHistory.isNotEmpty) ...[
+                            const SizedBox(height: 20),
+                            OutlinedButton.icon(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ContractHistoryScreen(),
+                                ),
+                              ),
+                              icon: const Icon(Icons.history, size: 18),
+                              label: const Text(
+                                'Xem lịch sử hợp đồng',
+                                style: TextStyle(
+                                  fontFamily: 'Be Vietnam Pro',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF2E6486),
+                                side: const BorderSide(
+                                  color: Color(0xFF2E6486),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Hãy chọn phòng phù hợp ở trang Khám phá và gửi yêu cầu thuê phòng cho chủ trọ nhé!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Be Vietnam Pro',
-                      fontSize: 13,
-                      color: Colors.black54,
-                    ),
-                  ),
-                  if (appState.contractHistory.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    OutlinedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ContractHistoryScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.history, size: 18),
-                      label: const Text(
-                        'Xem lịch sử hợp đồng',
-                        style: TextStyle(
-                          fontFamily: 'Be Vietnam Pro',
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF2E6486),
-                        side: const BorderSide(color: Color(0xFF2E6486)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
           ),
@@ -215,34 +229,39 @@ class MyRoomScreen extends StatelessWidget {
               const SizedBox(height: 10),
 
               Expanded(
-                child: ListView(
-                  children: [
-                    // Đại diện phòng (Chính là tài khoản đăng nhập)
-                    _buildRoommateRow(
-                      context,
-                      tenant['full_name'] as String,
-                      'Đại diện phòng (Bạn)',
-                      true,
-                      cccd: tenant['cccd'] as String?,
-                      appState: appState,
-                    ),
-
-                    // Thành viên phòng
-                    ...roommates.map(
-                      (rm) => _buildRoommateRow(
+                child: RefreshIndicator(
+                  color: const Color(0xFF2E6486),
+                  onRefresh: () => appState.refreshAllData(),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      // Đại diện phòng (Chính là tài khoản đăng nhập)
+                      _buildRoommateRow(
                         context,
-                        rm['full_name'] as String,
-                        'Thành viên',
-                        false,
-                        cccd: rm['cccd'] as String?,
+                        tenant['full_name'] as String,
+                        'Đại diện phòng (Bạn)',
+                        true,
+                        cccd: tenant['cccd'] as String?,
                         appState: appState,
                       ),
-                    ),
 
-                    // Các slot trống còn lại
-                    for (int i = 0; i < emptySlotCount; i++)
-                      _buildEmptySlotRow(context, appState),
-                  ],
+                      // Thành viên phòng
+                      ...roommates.map(
+                        (rm) => _buildRoommateRow(
+                          context,
+                          rm['full_name'] as String,
+                          'Thành viên',
+                          false,
+                          cccd: rm['cccd'] as String?,
+                          appState: appState,
+                        ),
+                      ),
+
+                      // Các slot trống còn lại
+                      for (int i = 0; i < emptySlotCount; i++)
+                        _buildEmptySlotRow(context, appState),
+                    ],
+                  ),
                 ),
               ),
             ],

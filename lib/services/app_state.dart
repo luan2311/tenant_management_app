@@ -143,16 +143,27 @@ class AppState extends ChangeNotifier {
       activeRoomData = null;
     }
 
-    // Pull and sync all tables from Cloud Firestore to local SQLite for real-time cross-device sync
-    await FirestoreSyncService.syncAll(
-      _currentUser!.uid,
-      _currentUser!.role,
-      facilityId: tenantFacilityId,
-    );
+    // Pull and sync all tables from Cloud Firestore to local SQLite for real-time
+    // cross-device sync. Best-effort: a failed Firestore pull (offline, rules,
+    // network) must NOT prevent reloading local caches from SQLite below —
+    // otherwise the UI keeps stale data after a successful local write.
+    try {
+      await FirestoreSyncService.syncAll(
+        _currentUser!.uid,
+        _currentUser!.role,
+        facilityId: tenantFacilityId,
+      );
+    } catch (e) {
+      print("refreshAllData: Firestore syncAll failed, using local data: $e");
+    }
 
     // Run background scans for notifications/contracts
     // Background scans dùng int id — tạm dùng hashCode từ UID
-    await _db.runBackgroundScans(_currentUser!.uid.hashCode);
+    try {
+      await _db.runBackgroundScans(_currentUser!.uid.hashCode);
+    } catch (e) {
+      print("refreshAllData: runBackgroundScans failed: $e");
+    }
 
     await _reloadLocalCaches(tenantFacilityId: tenantFacilityId);
   }
@@ -330,7 +341,7 @@ class AppState extends ChangeNotifier {
         }
       }
 
-      await refreshAllData();
+      await _reloadLocalCaches();
       setLoading(false);
       return true;
     } catch (e) {
@@ -586,7 +597,7 @@ class AppState extends ChangeNotifier {
         print("Invoice saved locally but Firestore sync failed: $e");
       }
 
-      await refreshAllData();
+      await _reloadLocalCaches();
       setLoading(false);
       return true;
     } catch (e) {
@@ -810,7 +821,7 @@ class AppState extends ChangeNotifier {
         initialWater: initialWater,
       );
 
-      await refreshAllData();
+      await _reloadLocalCaches();
       setLoading(false);
       return true;
     } catch (e) {
@@ -835,7 +846,7 @@ class AppState extends ChangeNotifier {
       // 2. Apply rejection locally in SQLite
       await _db.localRejectRentalRequest(request.id!);
 
-      await refreshAllData();
+      await _reloadLocalCaches();
       setLoading(false);
       return true;
     } catch (e) {
