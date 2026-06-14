@@ -1,7 +1,11 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
+import 'package:tenant_management_app/services/app_state.dart';
+import 'package:tenant_management_app/models/notification.dart';
+import 'package:tenant_management_app/views/tenant/my_invoice_screen.dart';
 
 // HUY.4.2 · Sprint 4 — Trung tâm thông báo, hiển thị dưới dạng tab trong TenantShell.
 
@@ -12,87 +16,6 @@ const _kOnPrimaryContainer = Color(0xFF0D4C6D);
 const _kSecondary = Color(0xFF50616F);
 const _kTertiary = Color(0xFF585C85);
 
-// ─── Data models ──────────────────────────────────────────────────────────────
-enum NotificationCategory { today, lastWeek }
-
-class NotificationItem {
-  final String title;
-  final String body;
-  final String time;
-  final Color accentColor;      // màu thanh bên trái + icon bg
-  final Color iconColor;
-  final IconData icon;
-  final bool isRead;
-  final bool isUrgent;
-  final String? amount;         // chỉ có ở card thanh toán
-  final String? tag;            // chỉ có ở card hợp đồng
-  final NotificationCategory category;
-
-  const NotificationItem({
-    required this.title,
-    required this.body,
-    required this.time,
-    required this.accentColor,
-    required this.iconColor,
-    required this.icon,
-    this.isRead = false,
-    this.isUrgent = false,
-    this.amount,
-    this.tag,
-    required this.category,
-  });
-}
-
-// Dữ liệu mẫu map từ các card trong HTML
-final List<NotificationItem> _notifications = [
-  NotificationItem(
-    title: 'Nhắc nhở thanh toán tháng 10',
-    body:
-        'Hóa đơn tiền phòng và dịch vụ tháng 10/2023 của phòng 302 đã được tạo. Vui lòng thanh toán trước ngày 05/11.',
-    time: '09:30',
-    accentColor: _kErrorContainer,
-    iconColor: _kErrorContainer,
-    icon: Icons.receipt_long,
-    isUrgent: true,
-    amount: '4.500.000 ₫',
-    category: NotificationCategory.today,
-  ),
-  NotificationItem(
-    title: 'Hợp đồng sắp hết hạn',
-    body:
-        'Hợp đồng thuê phòng 302 của bạn sẽ hết hạn vào ngày 30/11/2023. Vui lòng liên hệ chủ nhà để gia hạn hoặc làm thủ tục trả phòng.',
-    time: 'Hôm qua',
-    accentColor: kTertiaryContainer,
-    iconColor: _kTertiary,
-    icon: Icons.description,
-    tag: 'Còn 25 ngày',
-    category: NotificationCategory.today,
-  ),
-  NotificationItem(
-    title: 'Lịch bảo trì thang máy',
-    body:
-        'Ban quản lý thông báo sẽ tiến hành bảo trì thang máy tòa nhà từ 08:00 đến 12:00 ngày 22/10. Mong quý khách thông cảm.',
-    time: '20/10',
-    accentColor: kSecondaryContainer,
-    iconColor: _kSecondary,
-    icon: Icons.campaign,
-    isRead: true,
-    category: NotificationCategory.lastWeek,
-  ),
-  NotificationItem(
-    title: 'Thông báo cúp nước tạm thời',
-    body:
-        'Khu vực sẽ bị cúp nước từ 22:00 đêm nay đến 05:00 sáng mai để sửa chữa đường ống chính.',
-    time: '15/10',
-    accentColor: kSecondaryContainer,
-    iconColor: _kSecondary,
-    icon: Icons.water_drop,
-    isRead: true,
-    category: NotificationCategory.lastWeek,
-  ),
-];
-
-// ─── Main screen ─────────────────────────────────────────────────────────────
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
 
@@ -101,10 +24,36 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
+  
+  bool _isToday(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      return date.year == now.year && date.month == now.month && date.day == now.day;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  void _markAllRead(BuildContext context) {
+    context.read<AppState>().markAllNotificationsAsRead();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Đã đánh dấu tất cả là đã đọc'),
+        backgroundColor: kPrimary,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Không tự vẽ Scaffold + bottom nav riêng — màn hình này chạy như 1 tab
-    // bên trong TenantShell (IndexedStack), đã có LumiereBottomNavBar.tenant().
+    final appState = context.watch<AppState>();
+    final notifications = appState.notifications;
+
+    final todayNotifications = notifications.where((n) => _isToday(n.createdAt)).toList();
+    final olderNotifications = notifications.where((n) => !_isToday(n.createdAt)).toList();
+
     return Scaffold(
       backgroundColor: kSurface,
       body: Stack(
@@ -122,36 +71,38 @@ class _NotificationScreenState extends State<NotificationScreen> {
               children: [
                 // Mobile sticky header
                 _MobileHeader(
-                  onMarkAllRead: _markAllRead,
+                  onMarkAllRead: () => _markAllRead(context),
                 ),
 
                 // Notification list
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-                    children: [
-                      // ── Hôm nay ──
-                      const _DateDivider(label: 'HÔM NAY'),
-                      const SizedBox(height: 12),
-                      ..._notifications
-                          .where((n) => n.category == NotificationCategory.today)
-                          .map((n) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _NotificationCard(item: n),
-                              )),
+                  child: notifications.isEmpty
+                      ? const _EmptyState()
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+                          children: [
+                            // ── Hôm nay ──
+                            if (todayNotifications.isNotEmpty) ...[
+                              const _DateDivider(label: 'HÔM NAY'),
+                              const SizedBox(height: 12),
+                              ...todayNotifications.map((n) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _NotificationCard(item: n),
+                                  )),
+                              const SizedBox(height: 8),
+                            ],
 
-                      const SizedBox(height: 8),
-                      // ── Tuần trước ──
-                      const _DateDivider(label: 'TUẦN TRƯỚC'),
-                      const SizedBox(height: 12),
-                      ..._notifications
-                          .where((n) => n.category == NotificationCategory.lastWeek)
-                          .map((n) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _NotificationCard(item: n),
-                              )),
-                    ],
-                  ),
+                            // ── Trước đó ──
+                            if (olderNotifications.isNotEmpty) ...[
+                              const _DateDivider(label: 'TRƯỚC ĐÓ'),
+                              const SizedBox(height: 12),
+                              ...olderNotifications.map((n) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _NotificationCard(item: n),
+                                  )),
+                            ],
+                          ],
+                        ),
                 ),
               ],
             ),
@@ -160,22 +111,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ),
     );
   }
-
-  void _markAllRead() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã đánh dấu tất cả là đã đọc'),
-        backgroundColor: kPrimary,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 }
 
 // ─── Background radial gradient painter ───────────────────────────────────────
-// Map từ CSS:
-//   radial-gradient(circle at 100% 0%, primary-fixed, transparent 40%)
-//   radial-gradient(circle at 0% 100%, secondary-fixed, transparent 40%)
 class _BackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -211,13 +149,12 @@ class _MobileHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       decoration: BoxDecoration(
         color: kSurface.withValues(alpha: 0.8),
-        // backdrop blur giả lập bằng color opacity
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -227,8 +164,8 @@ class _MobileHeader extends StatelessWidget {
                   color: kOnSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 2),
-              const Text(
+              SizedBox(height: 2),
+              Text(
                 'Thông báo',
                 style: TextStyle(
                   fontSize: 24,
@@ -245,10 +182,10 @@ class _MobileHeader extends StatelessWidget {
             child: Container(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
                     color: Color(0x14596064),
                     blurRadius: 16,
@@ -275,7 +212,6 @@ class _MobileHeader extends StatelessWidget {
 }
 
 // ─── Date divider ─────────────────────────────────────────────────────────────
-// Map từ <div class="flex items-center gap-4"> trong HTML
 class _DateDivider extends StatelessWidget {
   final String label;
 
@@ -307,10 +243,8 @@ class _DateDivider extends StatelessWidget {
 }
 
 // ─── Notification card ────────────────────────────────────────────────────────
-// Map từ các .glass-panel card trong HTML
-// 3 trạng thái: urgent (có amount + button), warning (có tag chip), read (opacity 0.8)
 class _NotificationCard extends StatefulWidget {
-  final NotificationItem item;
+  final NotificationModel item;
 
   const _NotificationCard({required this.item});
 
@@ -321,19 +255,98 @@ class _NotificationCard extends StatefulWidget {
 class _NotificationCardState extends State<_NotificationCard> {
   bool _pressed = false;
 
+  String _formatCreatedAt(String createdAtStr) {
+    try {
+      final date = DateTime.parse(createdAtStr);
+      final now = DateTime.now();
+      if (date.year == now.year && date.month == now.month && date.day == now.day) {
+        final hour = date.hour.toString().padLeft(2, '0');
+        final minute = date.minute.toString().padLeft(2, '0');
+        return '$hour:$minute';
+      } else if (date.year == now.year && date.month == now.month && date.day == now.day - 1) {
+        return 'Hôm qua';
+      } else {
+        final day = date.day.toString().padLeft(2, '0');
+        final month = date.month.toString().padLeft(2, '0');
+        return '$day/$month';
+      }
+    } catch (e) {
+      return createdAtStr;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final isRead = item.isRead == 1;
+
+    // Default styles for 'facility_notice' or general notices
+    IconData iconData = Icons.campaign;
+    Color accentColor = kSecondaryContainer;
+    Color iconColor = _kSecondary;
+    String? amount;
+    String? tag;
+
+    if (item.type == 'rent_reminder') {
+      iconData = Icons.receipt_long;
+      accentColor = _kErrorContainer;
+      iconColor = _kError;
+      // Extract amount from content if available
+      final match = RegExp(r'(\d+[\d\.,]*\s*[₫đ])').firstMatch(item.content);
+      if (match != null) {
+        amount = match.group(0);
+      }
+    } else if (item.type == 'contract_expiry') {
+      iconData = Icons.description;
+      accentColor = kTertiaryContainer;
+      iconColor = _kTertiary;
+      // Extract remaining days from content
+      final match = RegExp(r'sau (\d+) ngày').firstMatch(item.content);
+      if (match != null) {
+        tag = 'Còn ${match.group(1)} ngày';
+      } else if (item.content.contains('hết hạn')) {
+        tag = 'Hết hạn';
+      }
+    } else if (item.type == 'payment_success') {
+      iconData = Icons.celebration;
+      accentColor = kPrimaryFixed;
+      iconColor = kPrimary;
+    } else if (item.type == 'booking_request') {
+      iconData = Icons.add_home;
+      accentColor = kPrimaryFixed;
+      iconColor = kPrimary;
+    } else if (item.type == 'facility_notice') {
+      final contentLower = item.content.toLowerCase();
+      final titleLower = item.title.toLowerCase();
+      if (contentLower.contains('nước') || titleLower.contains('nước')) {
+        iconData = Icons.water_drop;
+        accentColor = const Color(0xFFD0E8FF);
+        iconColor = Colors.blue;
+      } else if (contentLower.contains('điện') || titleLower.contains('điện')) {
+        iconData = Icons.bolt;
+        accentColor = const Color(0xFFFFF0D0);
+        iconColor = Colors.amber.shade800;
+      } else if (contentLower.contains('bảo trì') || titleLower.contains('bảo trì') || contentLower.contains('thang máy') || titleLower.contains('thang máy')) {
+        iconData = Icons.construction;
+        accentColor = const Color(0xFFFFEAD0);
+        iconColor = Colors.orange;
+      }
+    }
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
+      onTap: () {
+        if (!isRead) {
+          context.read<AppState>().readNotification(item.id!);
+        }
+      },
       child: AnimatedScale(
         scale: _pressed ? 0.985 : 1.0,
         duration: const Duration(milliseconds: 120),
         child: Opacity(
-          opacity: item.isRead ? 0.8 : 1.0,
+          opacity: isRead ? 0.8 : 1.0,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: BackdropFilter(
@@ -361,8 +374,7 @@ class _NotificationCardState extends State<_NotificationCard> {
                 child: Stack(
                   children: [
                     // Thanh màu bên trái (unread indicator)
-                    // Map từ <div class="absolute top-0 left-0 w-1 h-full">
-                    if (!item.isRead)
+                    if (!isRead)
                       Positioned(
                         top: 0,
                         bottom: 0,
@@ -370,7 +382,7 @@ class _NotificationCardState extends State<_NotificationCard> {
                         child: Container(
                           width: 4,
                           decoration: BoxDecoration(
-                            color: item.accentColor,
+                            color: iconColor,
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(16),
                               bottomLeft: Radius.circular(16),
@@ -386,7 +398,12 @@ class _NotificationCardState extends State<_NotificationCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Icon circle
-                          _NotificationIcon(item: item),
+                          _NotificationIcon(
+                            icon: iconData,
+                            accentColor: accentColor,
+                            iconColor: iconColor,
+                            isRead: isRead,
+                          ),
                           const SizedBox(width: 16),
 
                           // Text content
@@ -403,7 +420,7 @@ class _NotificationCardState extends State<_NotificationCard> {
                                         item.title,
                                         style: TextStyle(
                                           fontSize: 14,
-                                          fontWeight: item.isRead
+                                          fontWeight: isRead
                                               ? FontWeight.w500
                                               : FontWeight.w700,
                                           color: kOnSurface,
@@ -412,7 +429,7 @@ class _NotificationCardState extends State<_NotificationCard> {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      item.time,
+                                      _formatCreatedAt(item.createdAt),
                                       style: const TextStyle(
                                         fontSize: 11,
                                         color: kOnSurfaceVariant,
@@ -424,7 +441,7 @@ class _NotificationCardState extends State<_NotificationCard> {
 
                                 // Body text
                                 Text(
-                                  item.body,
+                                  item.content,
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: kOnSurfaceVariant,
@@ -433,28 +450,40 @@ class _NotificationCardState extends State<_NotificationCard> {
                                 ),
 
                                 // Amount row (urgent payment card)
-                                if (item.amount != null) ...[
+                                if (item.type == 'rent_reminder') ...[
                                   const SizedBox(height: 12),
                                   Row(
                                     children: [
-                                      Text(
-                                        item.amount!,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: _kError,
+                                      if (amount != null) ...[
+                                        Text(
+                                          amount,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: _kError,
+                                          ),
                                         ),
+                                        const SizedBox(width: 12),
+                                      ],
+                                      _ActionChip(
+                                        label: 'Xem hóa đơn',
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => const MyInvoiceScreen(),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                      const SizedBox(width: 12),
-                                      _ActionChip(label: 'Xem hóa đơn'),
                                     ],
                                   ),
                                 ],
 
                                 // Tag chip (contract expiry)
-                                if (item.tag != null) ...[
+                                if (tag != null) ...[
                                   const SizedBox(height: 10),
-                                  _TagChip(label: item.tag!),
+                                  _TagChip(label: tag),
                                 ],
                               ],
                             ),
@@ -475,9 +504,17 @@ class _NotificationCardState extends State<_NotificationCard> {
 
 // ─── Icon circle cho từng notification ───────────────────────────────────────
 class _NotificationIcon extends StatelessWidget {
-  final NotificationItem item;
+  final IconData icon;
+  final Color accentColor;
+  final Color iconColor;
+  final bool isRead;
 
-  const _NotificationIcon({required this.item});
+  const _NotificationIcon({
+    required this.icon,
+    required this.accentColor,
+    required this.iconColor,
+    required this.isRead,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -486,11 +523,11 @@ class _NotificationIcon extends StatelessWidget {
       height: 48,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: item.accentColor.withValues(alpha: item.isRead ? 0.25 : 0.20),
+        color: accentColor.withValues(alpha: isRead ? 0.25 : 0.20),
       ),
       child: Icon(
-        item.icon,
-        color: item.iconColor,
+        icon,
+        color: iconColor,
         size: 22,
       ),
     );
@@ -498,16 +535,16 @@ class _NotificationIcon extends StatelessWidget {
 }
 
 // ─── "Xem hóa đơn" action button chip ────────────────────────────────────────
-// Map từ <button class="px-4 py-2 rounded-full bg-primary-container">
 class _ActionChip extends StatelessWidget {
   final String label;
+  final VoidCallback onTap;
 
-  const _ActionChip({required this.label});
+  const _ActionChip({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
@@ -528,7 +565,6 @@ class _ActionChip extends StatelessWidget {
 }
 
 // ─── Tag chip "Còn 25 ngày" ───────────────────────────────────────────────────
-// Map từ <span class="inline-block px-3 py-1 rounded-full bg-surface-container-high">
 class _TagChip extends StatelessWidget {
   final String label;
 
@@ -548,6 +584,60 @@ class _TagChip extends StatelessWidget {
           fontSize: 12,
           color: kOnSurface,
         ),
+      ),
+    );
+  }
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.5),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: kOutlineVariant.withValues(alpha: 0.2),
+              ),
+            ),
+            child: const Icon(
+              Icons.notifications_none_outlined,
+              size: 64,
+              color: kPrimary,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Chưa có thông báo nào',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: kOnSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              'Các cập nhật tiền phòng, hợp đồng và thông báo từ ban quản lý cơ sở sẽ xuất hiện ở đây.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: kOnSurfaceVariant.withValues(alpha: 0.8),
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -409,9 +409,9 @@ class _RevenueCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            right: -10,
-            top: -10,
-            child: Icon(Icons.monetization_on_outlined, size: 72, color: AppColors.sanctuaryBlue.withOpacity(0.75)),
+            right: 4,
+            top: 4,
+            child: Icon(Icons.monetization_on_outlined, size: 64, color: AppColors.sanctuaryBlue.withOpacity(0.75)),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1121,8 +1121,16 @@ class _ApproveRequestDialogState extends State<_ApproveRequestDialog> {
       }
     } else {
       if (mounted) {
+        final detail = appState.lastErrorMessage;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Có lỗi xảy ra khi duyệt yêu cầu.')),
+          SnackBar(
+            content: Text(
+              detail == null || detail.isEmpty
+                  ? 'Có lỗi xảy ra khi duyệt yêu cầu.'
+                  : 'Có lỗi xảy ra khi duyệt yêu cầu: $detail',
+            ),
+            duration: const Duration(seconds: 6),
+          ),
         );
       }
     }

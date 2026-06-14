@@ -24,6 +24,11 @@ class AppState extends ChangeNotifier {
   List<NotificationModel> _notifications = [];
   List<RentalRequestModel> _rentalRequests = [];
   Map<String, dynamic>? activeRoomData;
+  List<Map<String, dynamic>> _contractHistory = [];
+
+  /// Last error message captured from a failed write operation (e.g. approve/reject).
+  /// Lets the UI surface the real cause instead of a generic message.
+  String? lastErrorMessage;
 
   // Filtered lists for Admin UI
   List<RoomModel> _filteredRooms = [];
@@ -43,6 +48,7 @@ class AppState extends ChangeNotifier {
   };
   int unpaidInvoicesCount = 0;
   Map<String, double> monthlyRevenue = {};
+  Map<String, double> monthlyDebt = {};
   Map<String, double> revenueSummary = {'paid': 0, 'unpaid': 0};
   List<Map<String, dynamic>> debtorList = [];
   Map<String, dynamic>? offlineHealthCheck;
@@ -60,6 +66,9 @@ class AppState extends ChangeNotifier {
   List<InvoiceModel> get invoices => _invoices;
   List<NotificationModel> get notifications => _notifications;
   List<RentalRequestModel> get rentalRequests => _rentalRequests;
+
+  /// Lịch sử hợp đồng (mọi trạng thái) của tenant đang đăng nhập.
+  List<Map<String, dynamic>> get contractHistory => _contractHistory;
   List<RentalRequestModel> get pendingRequests =>
       _rentalRequests.where((r) => r.status == 'pending').toList();
   bool get isLoading => _isLoading;
@@ -121,38 +130,68 @@ class AppState extends ChangeNotifier {
     // Sync current user profile from Firebase to local SQLite
     await _db.syncUserToSQLite(_currentUser!);
 
+    // If role is tenant, resolve their active room & contract details first to find their facility_id
+    int? tenantFacilityId;
+    if (_currentUser!.role == 'tenant') {
+      activeRoomData = await _db.getTenantActiveRoomAndContract(
+        _currentUser!.uid,
+      );
+      if (activeRoomData != null && activeRoomData!['room'] != null) {
+        tenantFacilityId = activeRoomData!['room']['facility_id'] as int?;
+      }
+    } else {
+      activeRoomData = null;
+    }
+
     // Pull and sync all tables from Cloud Firestore to local SQLite for real-time cross-device sync
-    await FirestoreSyncService.syncAll(_currentUser!.uid, _currentUser!.role);
+    await FirestoreSyncService.syncAll(
+      _currentUser!.uid,
+      _currentUser!.role,
+      facilityId: tenantFacilityId,
+    );
 
     // Run background scans for notifications/contracts
     // Background scans dùng int id — tạm dùng hashCode từ UID
     await _db.runBackgroundScans(_currentUser!.uid.hashCode);
+
+    await _reloadLocalCaches(tenantFacilityId: tenantFacilityId);
+  }
+
+  Future<void> _reloadLocalCaches({int? tenantFacilityId}) async {
+    if (_currentUser == null) return;
+
+    if (_currentUser!.role == 'tenant') {
+      activeRoomData = await _db.getTenantActiveRoomAndContract(
+        _currentUser!.uid,
+      );
+      if (activeRoomData != null && activeRoomData!['room'] != null) {
+        tenantFacilityId ??= activeRoomData!['room']['facility_id'] as int?;
+      }
+      _contractHistory = await _db.getTenantContractHistory(_currentUser!.uid);
+    } else {
+      _contractHistory = [];
+    }
 
     _facilities = await _db.getAllFacilities();
     _rooms = await _db.getAllRooms();
     _tenants = await _db.getAllTenants();
     _contracts = await _db.getAllContracts();
     _invoices = await _db.getAllInvoices();
+
+    // Fetch notifications including user specific and facility/general notices
     _notifications = await _db.getNotificationsForUser(
       _currentUser!.uid.hashCode,
+      facilityId: tenantFacilityId,
     );
 
     // Fetch rental requests
     _rentalRequests = await _db.getAllRentalRequests();
 
-    // If role is tenant, resolve their active room & contract details from database helper
-    if (_currentUser!.role == 'tenant') {
-      activeRoomData = await _db.getTenantActiveRoomAndContract(
-        _currentUser!.uid,
-      );
-    } else {
-      activeRoomData = null;
-    }
-
     // Load stats
     roomStats = await _db.getRoomStatistics();
     unpaidInvoicesCount = await _db.getUnpaidInvoicesCount();
     monthlyRevenue = await _db.getRevenueByMonth();
+    monthlyDebt = await _db.getDebtByMonth();
     revenueSummary = await _db.getRevenueSummary(
       billingMonth: currentBillingMonth,
     );
@@ -258,6 +297,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<bool> terminateContract(int contractId, int roomId) async {
+    lastErrorMessage = null;
     setLoading(true);
     try {
       final contract = await _db.getContractById(contractId);
@@ -266,26 +306,36 @@ class AppState extends ChangeNotifier {
           : null;
       final room = await _db.getRoomById(roomId);
 
-      // 1. Sync on Firestore
-      if (room != null && tenant != null) {
-        await FirestoreSyncService.terminateContract(
-          roomNumber: room.roomNumber,
-          tenantCccd: tenant.cccd,
-        );
-      }
-
-      // 2. Local SQLite update
+      // 1. Local SQLite update first — SQLite is the offline-first source of truth.
       final affectedRows = await _db.terminateContractWithRoomSync(
         contractId,
         roomId,
       );
-      if (affectedRows > 0) {
-        await refreshAllData();
+      if (affectedRows <= 0) {
+        lastErrorMessage =
+            'Không tìm thấy hợp đồng để cập nhật (id=$contractId).';
         setLoading(false);
-        return true;
+        return false;
       }
+
+      // 2. Best-effort sync to Firestore — must not fail the local update.
+      if (room != null && tenant != null) {
+        try {
+          await FirestoreSyncService.terminateContract(
+            roomNumber: room.roomNumber,
+            tenantCccd: tenant.cccd,
+          );
+        } catch (e) {
+          print("Contract terminated locally but Firestore sync failed: $e");
+        }
+      }
+
+      await refreshAllData();
+      setLoading(false);
+      return true;
     } catch (e) {
       print("Error terminating contract: $e");
+      lastErrorMessage = e.toString();
     }
     setLoading(false);
     return false;
@@ -309,6 +359,12 @@ class AppState extends ChangeNotifier {
       final contract = activeData['contract'];
       final roomId = room['id'] as int;
       final roomNumber = room['room_number'] as String;
+      final maxTenants = room['max_tenants'] as int? ?? 2;
+      final roommates = activeData['roommates'] as List<dynamic>? ?? [];
+      if (roommates.length >= maxTenants - 1) {
+        setLoading(false);
+        return false;
+      }
       final endDate = contract['end_date'] as String;
       final todayStr = DateTime.now().toIso8601String().substring(0, 10);
 
@@ -499,26 +555,42 @@ class AppState extends ChangeNotifier {
         }
       }
 
-      // Sync to Firestore
-      final firestoreId = await FirestoreSyncService.saveInvoice(
-        invoice,
-        roomNumber: roomNumber,
-        tenantCccd: tenantCccd,
-      );
-
-      // Save locally with firestoreId
-      final invoiceWithFirestore = invoice.copyWith(firestoreId: firestoreId);
-      final affectedRows = invoice.id == null
-          ? await _db.insertInvoice(invoiceWithFirestore)
-          : await _db.updateInvoice(invoiceWithFirestore);
-
-      if (affectedRows > 0) {
-        await refreshAllData();
-        setLoading(false);
-        return true;
+      // Save locally first — SQLite is the offline-first source of truth.
+      final int localId;
+      if (invoice.id == null) {
+        localId = await _db.insertInvoice(invoice);
+        if (localId <= 0) {
+          setLoading(false);
+          return false;
+        }
+      } else {
+        final affectedRows = await _db.updateInvoice(invoice);
+        if (affectedRows <= 0) {
+          setLoading(false);
+          return false;
+        }
+        localId = invoice.id!;
       }
+
+      // Best-effort sync to Firestore — must not fail the local save.
+      try {
+        final firestoreId = await FirestoreSyncService.saveInvoice(
+          invoice,
+          roomNumber: roomNumber,
+          tenantCccd: tenantCccd,
+        );
+        await _db.updateInvoice(
+          invoice.copyWith(id: localId, firestoreId: firestoreId),
+        );
+      } catch (e) {
+        print("Invoice saved locally but Firestore sync failed: $e");
+      }
+
+      await refreshAllData();
+      setLoading(false);
+      return true;
     } catch (e) {
-      print("Error saving/syncing invoice: $e");
+      print("Error saving invoice: $e");
     }
     setLoading(false);
     return false;
@@ -528,22 +600,24 @@ class AppState extends ChangeNotifier {
     final today = DateTime.now().toIso8601String().substring(0, 10);
     try {
       final localInvoice = await _db.getInvoiceById(invoiceId);
-      if (localInvoice != null &&
-          localInvoice.firestoreId != null &&
-          localInvoice.firestoreId!.isNotEmpty) {
-        await FirestoreSyncService.updateInvoiceStatus(
-          firestoreId: localInvoice.firestoreId!,
-          status: 'paid',
-          paymentDate: today,
-        );
-      }
       final affectedRows = await _db.updateInvoiceStatus(
         invoiceId,
         'paid',
         today,
       );
       if (affectedRows > 0) {
-        await refreshAllData();
+        await _reloadLocalCaches();
+        if (localInvoice != null &&
+            localInvoice.firestoreId != null &&
+            localInvoice.firestoreId!.isNotEmpty) {
+          FirestoreSyncService.updateInvoiceStatus(
+            firestoreId: localInvoice.firestoreId!,
+            status: 'paid',
+            paymentDate: today,
+          ).catchError((e) {
+            debugPrint("Error syncing paid invoice status to Firestore: $e");
+          });
+        }
         return true;
       }
     } catch (e) {
@@ -601,11 +675,37 @@ class AppState extends ChangeNotifier {
   Future<void> readNotification(int notifId) async {
     await _db.markNotificationAsRead(notifId);
     if (_currentUser != null) {
+      int? tenantFacilityId;
+      if (_currentUser!.role == 'tenant' &&
+          activeRoomData != null &&
+          activeRoomData!['room'] != null) {
+        tenantFacilityId = activeRoomData!['room']['facility_id'] as int?;
+      }
       _notifications = await _db.getNotificationsForUser(
         _currentUser!.uid.hashCode,
+        facilityId: tenantFacilityId,
       );
       notifyListeners();
     }
+  }
+
+  Future<void> markAllNotificationsAsRead() async {
+    if (_currentUser == null) return;
+    int? tenantFacilityId;
+    if (_currentUser!.role == 'tenant' &&
+        activeRoomData != null &&
+        activeRoomData!['room'] != null) {
+      tenantFacilityId = activeRoomData!['room']['facility_id'] as int?;
+    }
+    await _db.markAllNotificationsAsRead(
+      _currentUser!.uid.hashCode,
+      facilityId: tenantFacilityId,
+    );
+    _notifications = await _db.getNotificationsForUser(
+      _currentUser!.uid.hashCode,
+      facilityId: tenantFacilityId,
+    );
+    notifyListeners();
   }
 
   // Helper for Vietnamese diacritics removal
@@ -670,7 +770,12 @@ class AppState extends ChangeNotifier {
     required double initialElectricity,
     required double initialWater,
   }) async {
-    if (request.firestoreId == null || request.id == null) return false;
+    lastErrorMessage = null;
+    if (request.firestoreId == null || request.id == null) {
+      lastErrorMessage =
+          'Yêu cầu thiếu mã đồng bộ (firestoreId/id). Hãy kéo làm mới dữ liệu rồi thử lại.';
+      return false;
+    }
     setLoading(true);
     try {
       // 1. Sync approval on Cloud Firestore
@@ -710,6 +815,7 @@ class AppState extends ChangeNotifier {
       return true;
     } catch (e) {
       print("Error approving rental request: $e");
+      lastErrorMessage = e.toString();
       setLoading(false);
       return false;
     }

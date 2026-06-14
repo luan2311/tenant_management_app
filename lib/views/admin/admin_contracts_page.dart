@@ -293,13 +293,19 @@ class _ContractCard extends StatelessWidget {
       contract.roomId,
     );
     if (!context.mounted) return;
+    final detail = appState.lastErrorMessage;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           success
               ? 'Đã kết thúc hợp đồng.'
-              : 'Không thể kết thúc hợp đồng. Vui lòng thử lại.',
+              : (detail == null || detail.isEmpty
+                  ? 'Không thể kết thúc hợp đồng. Vui lòng thử lại.'
+                  : 'Không thể kết thúc hợp đồng: $detail'),
         ),
+        duration: success
+            ? const Duration(seconds: 4)
+            : const Duration(seconds: 6),
       ),
     );
   }

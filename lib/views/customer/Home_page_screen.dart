@@ -218,7 +218,9 @@ class _RoomCard extends StatelessWidget {
     final activeData = appState.activeRoomData;
 
     // Check if the tenant doesn't have an active room
-    if (activeData == null || activeData['room'] == null || activeData['contract'] == null) {
+    if (activeData == null ||
+        activeData['room'] == null ||
+        activeData['contract'] == null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
@@ -228,7 +230,9 @@ class _RoomCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.75),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: kOutlineVariant.withValues(alpha: 0.15)),
+              border: Border.all(
+                color: kOutlineVariant.withValues(alpha: 0.15),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.white.withValues(alpha: 0.8),
@@ -269,13 +273,21 @@ class _RoomCard extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kPrimary,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       elevation: 0,
                     ),
                     onPressed: onTapExplore,
                     icon: const Icon(Icons.search_rounded, size: 18),
-                    label: const Text('Khám phá phòng trọ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      'Khám phá phòng trọ',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
               ],
             ),
@@ -387,7 +399,10 @@ class _RoomCard extends StatelessWidget {
                     'Hợp đồng: $startDate – $endDate',
                   ),
                   const SizedBox(height: 12),
-                  _infoRow(Icons.group_outlined, '$occupantsCount người đang ở'),
+                  _infoRow(
+                    Icons.group_outlined,
+                    '$occupantsCount người đang ở',
+                  ),
                 ],
               ),
             ],
@@ -433,7 +448,9 @@ class _UnpaidBillCard extends StatelessWidget {
     }
 
     final List<dynamic> invoices = activeData['invoices'] as List<dynamic>;
-    final unpaidInvoices = invoices.where((inv) => inv['status'] == 'unpaid').toList();
+    final unpaidInvoices = invoices
+        .where((inv) => inv['status'] == 'unpaid')
+        .toList();
 
     if (unpaidInvoices.isEmpty) {
       return Container(
@@ -459,26 +476,25 @@ class _UnpaidBillCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Không có hóa đơn trễ hạn',
-                  style: TextStyle(
-                    color: Color(0xFF065F46),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Không có hóa đơn trễ hạn',
+                    style: TextStyle(
+                      color: Color(0xFF065F46),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Tất cả các khoản phí đã được thanh toán.',
-                  style: TextStyle(
-                    color: Color(0xFF047857),
-                    fontSize: 12,
+                  SizedBox(height: 2),
+                  Text(
+                    'Tất cả các khoản phí đã được thanh toán.',
+                    style: TextStyle(color: Color(0xFF047857), fontSize: 12),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -488,10 +504,14 @@ class _UnpaidBillCard extends StatelessWidget {
     final invoice = unpaidInvoices.first;
     final billingMonth = invoice['billing_month'] as String;
     final totalPrice = invoice['total_price'] as double;
-    final priceStr = '${totalPrice.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}đ';
+    final priceStr =
+        '${totalPrice.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}đ';
 
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyInvoiceScreen())),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MyInvoiceScreen()),
+      ),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -511,49 +531,47 @@ class _UnpaidBillCard extends StatelessWidget {
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.receipt_long_rounded,
-                    color: _kOnErrorContainer,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hóa đơn tháng $billingMonth',
-                      style: const TextStyle(
-                        color: _kOnErrorContainer,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Vui lòng thanh toán sớm',
-                      style: TextStyle(
-                        color: _kErrorDim,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                color: _kOnErrorContainer,
+                size: 22,
+              ),
             ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hóa đơn tháng $billingMonth',
+                    style: const TextStyle(
+                      color: _kOnErrorContainer,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Vui lòng thanh toán sớm',
+                    style: TextStyle(
+                      color: _kErrorDim,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -596,7 +614,10 @@ class _QuickShortcuts extends StatelessWidget {
           child: _ShortcutButton(
             icon: Icons.description_outlined,
             label: 'Xem hợp đồng',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContractDetailScreen())),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ContractDetailScreen()),
+            ),
           ),
         ),
         const SizedBox(width: 16),
@@ -604,7 +625,10 @@ class _QuickShortcuts extends StatelessWidget {
           child: _ShortcutButton(
             icon: Icons.history_rounded,
             label: 'Lịch sử hóa đơn',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyInvoiceScreen())),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyInvoiceScreen()),
+            ),
           ),
         ),
       ],

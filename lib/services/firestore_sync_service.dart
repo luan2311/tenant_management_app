@@ -1,8 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tenant_management_app/models/rental_request.dart';
-import 'package:tenant_management_app/models/contract.dart';
-import 'package:tenant_management_app/models/tenant.dart';
-import 'package:tenant_management_app/models/notification.dart';
 import 'package:tenant_management_app/models/invoice.dart';
 import 'package:tenant_management_app/services/database_helper.dart';
 
@@ -11,7 +8,11 @@ class FirestoreSyncService {
 
   /// Synchronizes Firestore data with the local SQLite database.
   /// This downloads all relevant records from Firestore and updates the local SQLite tables.
-  static Future<void> syncAll(String currentFirebaseUid, String role) async {
+  static Future<void> syncAll(
+    String currentFirebaseUid,
+    String role, {
+    int? facilityId,
+  }) async {
     try {
       final db = await DatabaseHelper.instance.database;
 
@@ -33,18 +34,27 @@ class FirestoreSyncService {
       for (var doc in tenantSnap.docs) {
         final data = doc.data();
         final cccd = data['cccd'] as String;
-        
+
         // Find local user ID associated with user_uid
         final userUid = data['user_uid'] as String?;
         int? localUserId;
         if (userUid != null && userUid.isNotEmpty) {
-          final userMaps = await db.query('users', columns: ['id'], where: 'firebase_uid = ?', whereArgs: [userUid]);
+          final userMaps = await db.query(
+            'users',
+            columns: ['id'],
+            where: 'firebase_uid = ?',
+            whereArgs: [userUid],
+          );
           if (userMaps.isNotEmpty) {
             localUserId = userMaps.first['id'] as int;
           }
         }
 
-        final localTenantMaps = await db.query('tenants', where: 'cccd = ?', whereArgs: [cccd]);
+        final localTenantMaps = await db.query(
+          'tenants',
+          where: 'cccd = ?',
+          whereArgs: [cccd],
+        );
         if (localTenantMaps.isEmpty) {
           await db.insert('tenants', {
             'user_id': localUserId,
@@ -78,12 +88,22 @@ class FirestoreSyncService {
         final tenantCccd = data['tenant_cccd'] as String;
 
         // Find local room_id
-        final roomMaps = await db.query('rooms', columns: ['id'], where: 'room_number = ?', whereArgs: [roomNumber]);
+        final roomMaps = await db.query(
+          'rooms',
+          columns: ['id'],
+          where: 'room_number = ?',
+          whereArgs: [roomNumber],
+        );
         if (roomMaps.isEmpty) continue;
         final roomId = roomMaps.first['id'] as int;
 
         // Find local tenant_id
-        final tenantMaps = await db.query('tenants', columns: ['id'], where: 'cccd = ?', whereArgs: [tenantCccd]);
+        final tenantMaps = await db.query(
+          'tenants',
+          columns: ['id'],
+          where: 'cccd = ?',
+          whereArgs: [tenantCccd],
+        );
         if (tenantMaps.isEmpty) continue;
         final tenantId = tenantMaps.first['id'] as int;
 
@@ -129,7 +149,12 @@ class FirestoreSyncService {
         final userUid = data['user_uid'] as String;
 
         // Find local room_id
-        final roomMaps = await db.query('rooms', columns: ['id'], where: 'room_number = ?', whereArgs: [roomNumber]);
+        final roomMaps = await db.query(
+          'rooms',
+          columns: ['id'],
+          where: 'room_number = ?',
+          whereArgs: [roomNumber],
+        );
         if (roomMaps.isEmpty) continue;
         final roomId = roomMaps.first['id'] as int;
 
@@ -153,14 +178,12 @@ class FirestoreSyncService {
             'occupants': data['occupants'],
             'status': data['status'],
             'created_at': data['created_at'],
+            'roommates': data['roommates'],
           });
         } else {
           await db.update(
             'rental_requests',
-            {
-              'firestore_id': doc.id,
-              'status': data['status'],
-            },
+            {'firestore_id': doc.id, 'status': data['status']},
             where: 'id = ?',
             whereArgs: [localRequestMaps.first['id']],
           );
@@ -168,16 +191,25 @@ class FirestoreSyncService {
       }
 
       // 5. Sync Notifications
-      // Pull notifications meant for this user (or admin)
-      final userQuery = role == 'admin' ? 'admin' : currentFirebaseUid;
+      // Pull user specific notifications, admin notifications, or facility/general notifications
+      final List<String> targetUids = [
+        role == 'admin' ? 'admin' : currentFirebaseUid,
+      ];
+      if (role == 'tenant') {
+        targetUids.add('all');
+        if (facilityId != null) {
+          targetUids.add('facility_$facilityId');
+        }
+      }
+
       final notifSnap = await _firestore
           .collection('notifications')
-          .where('user_uid', isEqualTo: userQuery)
+          .where('user_uid', whereIn: targetUids)
           .get();
 
       for (var doc in notifSnap.docs) {
         final data = doc.data();
-        
+
         final localNotifMaps = await db.query(
           'notifications',
           where: 'created_at = ? AND title = ?',
@@ -185,8 +217,29 @@ class FirestoreSyncService {
         );
 
         if (localNotifMaps.isEmpty) {
+          int? localUserId;
+          int? localFacilityId;
+
+          final userUidField = data['user_uid'] as String?;
+          if (userUidField == 'admin') {
+            // Admin notifications are only pulled during an admin sync, so
+            // currentFirebaseUid is the admin's uid. Store with the same
+            // hashCode scheme the read side uses (getNotificationsForUser).
+            localUserId = currentFirebaseUid.hashCode;
+          } else if (userUidField != null &&
+              userUidField != 'all' &&
+              !userUidField.startsWith('facility_')) {
+            localUserId = currentFirebaseUid.hashCode;
+          } else if (userUidField != null &&
+              userUidField.startsWith('facility_')) {
+            localFacilityId = int.tryParse(
+              userUidField.replaceFirst('facility_', ''),
+            );
+          }
+
           await db.insert('notifications', {
-            'user_id': currentFirebaseUid.hashCode, // Fallback hashed int for local user_id
+            'user_id': localUserId,
+            'facility_id': localFacilityId,
             'title': data['title'],
             'content': data['content'],
             'type': data['type'],
@@ -194,13 +247,10 @@ class FirestoreSyncService {
             'is_read': data['is_read'],
           });
         } else {
-          // Sync read status from cloud to local, or local to cloud
-          // In this implementation, we can just update the local status to match cloud
+          // Sync read status from cloud to local
           await db.update(
             'notifications',
-            {
-              'is_read': data['is_read'],
-            },
+            {'is_read': data['is_read']},
             where: 'id = ?',
             whereArgs: [localNotifMaps.first['id']],
           );
@@ -215,12 +265,22 @@ class FirestoreSyncService {
         final tenantCccd = data['tenant_cccd'] as String;
 
         // Find local room_id
-        final roomMaps = await db.query('rooms', columns: ['id'], where: 'room_number = ?', whereArgs: [roomNumber]);
+        final roomMaps = await db.query(
+          'rooms',
+          columns: ['id'],
+          where: 'room_number = ?',
+          whereArgs: [roomNumber],
+        );
         if (roomMaps.isEmpty) continue;
         final roomId = roomMaps.first['id'] as int;
 
         // Find local tenant_id
-        final tenantMaps = await db.query('tenants', columns: ['id'], where: 'cccd = ?', whereArgs: [tenantCccd]);
+        final tenantMaps = await db.query(
+          'tenants',
+          columns: ['id'],
+          where: 'cccd = ?',
+          whereArgs: [tenantCccd],
+        );
         if (tenantMaps.isEmpty) continue;
         final tenantId = tenantMaps.first['id'] as int;
 
@@ -236,7 +296,8 @@ class FirestoreSyncService {
 
         final localInvoiceMaps = await db.query(
           'invoices',
-          where: 'firestore_id = ? OR (room_id = ? AND contract_id = ? AND billing_month = ?)',
+          where:
+              'firestore_id = ? OR (room_id = ? AND contract_id = ? AND billing_month = ?)',
           whereArgs: [doc.id, roomId, contractId, data['billing_month']],
         );
 
@@ -308,7 +369,8 @@ class FirestoreSyncService {
     await _firestore.collection('notifications').add({
       'user_uid': 'admin',
       'title': 'Yêu cầu thuê phòng mới',
-      'content': 'Khách hàng ${request.fullName} đã gửi yêu cầu thuê phòng ${request.roomNumber}.',
+      'content':
+          'Khách hàng ${request.fullName} đã gửi yêu cầu thuê phòng ${request.roomNumber}.',
       'type': 'booking_request',
       'created_at': request.createdAt,
       'is_read': 0,
@@ -337,7 +399,9 @@ class FirestoreSyncService {
     final batch = _firestore.batch();
 
     // 1. Update rental request status to 'approved'
-    final requestRef = _firestore.collection('rental_requests').doc(firestoreRequestId);
+    final requestRef = _firestore
+        .collection('rental_requests')
+        .doc(firestoreRequestId);
     batch.update(requestRef, {'status': 'approved'});
 
     // 2. Add or update tenant profile
@@ -371,7 +435,9 @@ class FirestoreSyncService {
     });
 
     // 5. Update room status to 'rented'
-    final roomStatusRef = _firestore.collection('room_statuses').doc(roomNumber);
+    final roomStatusRef = _firestore
+        .collection('room_statuses')
+        .doc(roomNumber);
     batch.set(roomStatusRef, {'status': 'rented'});
 
     // 6. Create tenant notification
@@ -379,9 +445,13 @@ class FirestoreSyncService {
     batch.set(notifRef, {
       'user_uid': tenantUid,
       'title': 'Yêu cầu thuê phòng đã được duyệt',
-      'content': 'Chúc mừng! Yêu cầu thuê phòng $roomNumber của bạn đã được duyệt. Hợp đồng thuê đã được kích hoạt.',
+      'content':
+          'Chúc mừng! Yêu cầu thuê phòng $roomNumber của bạn đã được duyệt. Hợp đồng thuê đã được kích hoạt.',
       'type': 'payment_success',
-      'created_at': DateTime.now().toIso8601String().replaceAll('T', ' ').substring(0, 19),
+      'created_at': DateTime.now()
+          .toIso8601String()
+          .replaceAll('T', ' ')
+          .substring(0, 19),
       'is_read': 0,
     });
 
@@ -397,7 +467,9 @@ class FirestoreSyncService {
     final batch = _firestore.batch();
 
     // 1. Update rental request status to 'rejected'
-    final requestRef = _firestore.collection('rental_requests').doc(firestoreRequestId);
+    final requestRef = _firestore
+        .collection('rental_requests')
+        .doc(firestoreRequestId);
     batch.update(requestRef, {'status': 'rejected'});
 
     // 2. Create tenant notification
@@ -405,9 +477,13 @@ class FirestoreSyncService {
     batch.set(notifRef, {
       'user_uid': tenantUid,
       'title': 'Yêu cầu thuê phòng không được duyệt',
-      'content': 'Rất tiếc, yêu cầu thuê phòng $roomNumber của bạn đã bị từ chối hoặc phòng không còn trống.',
+      'content':
+          'Rất tiếc, yêu cầu thuê phòng $roomNumber của bạn đã bị từ chối hoặc phòng không còn trống.',
       'type': 'contract_expiry', // Use contract_expiry type for warnings
-      'created_at': DateTime.now().toIso8601String().replaceAll('T', ' ').substring(0, 19),
+      'created_at': DateTime.now()
+          .toIso8601String()
+          .replaceAll('T', ' ')
+          .substring(0, 19),
       'is_read': 0,
     });
 
@@ -426,7 +502,7 @@ class FirestoreSyncService {
     required String endDate,
   }) async {
     final batch = _firestore.batch();
-    
+
     // Add to tenants
     final tenantRef = _firestore.collection('tenants').doc(cccd);
     batch.set(tenantRef, {
@@ -492,7 +568,9 @@ class FirestoreSyncService {
       batch.update(doc.reference, {'status': 'terminated'});
     }
 
-    final roomStatusRef = _firestore.collection('room_statuses').doc(roomNumber);
+    final roomStatusRef = _firestore
+        .collection('room_statuses')
+        .doc(roomNumber);
     batch.set(roomStatusRef, {'status': 'empty'});
 
     await batch.commit();
@@ -523,9 +601,13 @@ class FirestoreSyncService {
       batch.set(notifRef, {
         'user_uid': tenantUid,
         'title': 'Yêu cầu gia hạn hợp đồng đã được duyệt',
-        'content': 'Hợp đồng phòng $roomNumber của bạn đã được gia hạn đến ngày $newEndDate.',
+        'content':
+            'Hợp đồng phòng $roomNumber của bạn đã được gia hạn đến ngày $newEndDate.',
         'type': 'payment_success',
-        'created_at': DateTime.now().toIso8601String().replaceAll('T', ' ').substring(0, 19),
+        'created_at': DateTime.now()
+            .toIso8601String()
+            .replaceAll('T', ' ')
+            .substring(0, 19),
         'is_read': 0,
       });
     }
@@ -545,13 +627,20 @@ class FirestoreSyncService {
       'title': title,
       'content': content,
       'type': type,
-      'created_at': DateTime.now().toIso8601String().replaceAll('T', ' ').substring(0, 19),
+      'created_at': DateTime.now()
+          .toIso8601String()
+          .replaceAll('T', ' ')
+          .substring(0, 19),
       'is_read': 0,
     });
   }
 
   /// Pushes a new invoice or updates an existing one on Firestore.
-  static Future<String> saveInvoice(InvoiceModel invoice, {required String roomNumber, required String tenantCccd}) async {
+  static Future<String> saveInvoice(
+    InvoiceModel invoice, {
+    required String roomNumber,
+    required String tenantCccd,
+  }) async {
     final data = {
       'room_number': roomNumber,
       'tenant_cccd': tenantCccd,
@@ -573,7 +662,10 @@ class FirestoreSyncService {
       final docRef = await _firestore.collection('invoices').add(data);
       return docRef.id;
     } else {
-      await _firestore.collection('invoices').doc(invoice.firestoreId).set(data, SetOptions(merge: true));
+      await _firestore
+          .collection('invoices')
+          .doc(invoice.firestoreId)
+          .set(data, SetOptions(merge: true));
       return invoice.firestoreId!;
     }
   }

@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
         await db.execute('DROP TABLE IF EXISTS rental_requests');
@@ -158,12 +158,14 @@ class DatabaseHelper {
       CREATE TABLE notifications (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER,
+          facility_id INTEGER,
           title TEXT NOT NULL,
           content TEXT NOT NULL,
-          type TEXT CHECK(type IN ('booking_request', 'rent_reminder', 'contract_expiry', 'payment_success')) NOT NULL,
+          type TEXT CHECK(type IN ('booking_request', 'rent_reminder', 'contract_expiry', 'payment_success', 'facility_notice')) NOT NULL,
           created_at TEXT NOT NULL,
           is_read INTEGER DEFAULT 0,
-          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY(facility_id) REFERENCES facilities(id) ON DELETE CASCADE
       )
     ''');
 
@@ -616,6 +618,42 @@ class DatabaseHelper {
           'Hóa đơn tiền phòng tháng 06/2026 của bạn đã được khởi tạo. Vui lòng thanh toán trước ngày 05/06/2026.',
       'type': 'rent_reminder',
       'created_at': '2026-06-01 08:00:00',
+      'is_read': 0,
+    });
+
+    // Seed general/facility notifications
+    await db.insert('notifications', {
+      'facility_id': fac1,
+      'title': 'Lịch bảo trì định kỳ thang máy',
+      'content': 'Ban quản lý thông báo sẽ bảo trì hệ thống thang máy từ 09:00 đến 12:00 thứ Bảy tuần này. Vui lòng sử dụng thang bộ trong thời gian trên.',
+      'type': 'facility_notice',
+      'created_at': DateTime.now().subtract(const Duration(days: 2)).toIso8601String().substring(0, 19).replaceAll('T', ' '),
+      'is_read': 0,
+    });
+
+    await db.insert('notifications', {
+      'facility_id': fac1,
+      'title': 'Thông báo cúp nước tạm thời',
+      'content': 'Cơ sở Quận 1 sẽ bị tạm ngưng cấp nước vào rạng sáng ngày 15/06 từ 01:00 đến 04:00 để súc xả bể nước ngầm.',
+      'type': 'facility_notice',
+      'created_at': DateTime.now().subtract(const Duration(days: 1)).toIso8601String().substring(0, 19).replaceAll('T', ' '),
+      'is_read': 0,
+    });
+
+    await db.insert('notifications', {
+      'facility_id': fac2,
+      'title': 'Thông báo sửa chữa hệ thống điện',
+      'content': 'Hệ thống điện tòa nhà Quận 3 sẽ được nâng cấp từ 13:00 đến 15:00 ngày 16/06. Vui lòng tắt các thiết bị điện lớn trước thời gian này.',
+      'type': 'facility_notice',
+      'created_at': DateTime.now().toIso8601String().substring(0, 19).replaceAll('T', ' '),
+      'is_read': 0,
+    });
+
+    await db.insert('notifications', {
+      'title': 'Nội quy phòng chống dịch bệnh và vệ sinh chung',
+      'content': 'Yêu cầu tất cả cư dân tuân thủ việc phân loại rác tại nguồn và giữ gìn vệ sinh chung tại khu vực hành lang, nhà để xe.',
+      'type': 'facility_notice',
+      'created_at': DateTime.now().subtract(const Duration(days: 4)).toIso8601String().substring(0, 19).replaceAll('T', ' '),
       'is_read': 0,
     });
   }
@@ -1178,12 +1216,22 @@ class DatabaseHelper {
   }
 
   // --- Notifications CRUD ---
-  Future<List<NotificationModel>> getNotificationsForUser(int userId) async {
+  Future<List<NotificationModel>> getNotificationsForUser(int userId, {int? facilityId}) async {
     final db = await instance.database;
+    String whereClause = 'user_id = ?';
+    List<dynamic> whereArgs = [userId];
+    
+    if (facilityId != null) {
+      whereClause += ' OR facility_id = ? OR (user_id IS NULL AND facility_id IS NULL)';
+      whereArgs.add(facilityId);
+    } else {
+      whereClause += ' OR (user_id IS NULL AND facility_id IS NULL)';
+    }
+    
     final maps = await db.query(
       'notifications',
-      where: 'user_id = ?',
-      whereArgs: [userId],
+      where: whereClause,
+      whereArgs: whereArgs,
       orderBy: 'created_at DESC',
     );
     return maps.map((m) => NotificationModel.fromMap(m)).toList();
@@ -1196,6 +1244,27 @@ class DatabaseHelper {
       {'is_read': 1},
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  Future<int> markAllNotificationsAsRead(int userId, {int? facilityId}) async {
+    final db = await instance.database;
+    String whereClause = '(user_id = ?';
+    List<dynamic> whereArgs = [userId];
+    
+    if (facilityId != null) {
+      whereClause += ' OR facility_id = ? OR (user_id IS NULL AND facility_id IS NULL)';
+      whereArgs.add(facilityId);
+    } else {
+      whereClause += ' OR (user_id IS NULL AND facility_id IS NULL)';
+    }
+    whereClause += ') AND is_read = 0';
+    
+    return await db.update(
+      'notifications',
+      {'is_read': 1},
+      where: whereClause,
+      whereArgs: whereArgs,
     );
   }
 
@@ -1259,6 +1328,27 @@ class DatabaseHelper {
       revenue[month] = total;
     }
     return revenue;
+  }
+
+  // Thống kê nợ theo tháng
+  // Trả về map: {'YYYY-MM': tổng_tiền_chưa_thanh_toán}
+  Future<Map<String, double>> getDebtByMonth() async {
+    final db = await instance.database;
+    final result = await db.rawQuery('''
+      SELECT billing_month, SUM(total_price) as total 
+      FROM invoices 
+      WHERE status = 'unpaid'
+      GROUP BY billing_month
+      ORDER BY billing_month ASC
+    ''');
+
+    Map<String, double> debt = {};
+    for (var row in result) {
+      String month = row['billing_month'] as String;
+      double total = (row['total'] as num).toDouble();
+      debt[month] = total;
+    }
+    return debt;
   }
 
   Future<Map<String, double>> getRevenueSummary({String? billingMonth}) async {
@@ -1646,6 +1736,21 @@ class DatabaseHelper {
         where: 'id = ?',
         whereArgs: [requestId],
       );
+
+      // 8. Create local congratulatory notification for the tenant
+      if (localUserId != null) {
+        final roomNumberResult = await txn.query('rooms', columns: ['room_number'], where: 'id = ?', whereArgs: [roomId]);
+        final roomNumber = roomNumberResult.isNotEmpty ? roomNumberResult.first['room_number'] as String : '';
+        
+        await txn.insert('notifications', {
+          'user_id': localUserId,
+          'title': 'Chúc mừng! Thuê phòng thành công',
+          'content': 'Chúc mừng! Yêu cầu thuê phòng $roomNumber của bạn đã được duyệt thành công. Hợp đồng thuê đã được kích hoạt.',
+          'type': 'payment_success',
+          'created_at': DateTime.now().toIso8601String().substring(0, 19).replaceAll('T', ' '),
+          'is_read': 0,
+        });
+      }
     });
   }
 
@@ -1733,6 +1838,61 @@ class DatabaseHelper {
       'roommates': roommatesMaps,
       'invoices': invoiceMaps,
     };
+  }
+
+  /// Trả về toàn bộ lịch sử hợp đồng (mọi trạng thái) của tenant đăng nhập,
+  /// kèm thông tin phòng. Mỗi phần tử có dạng:
+  /// `{ 'contract': {...}, 'room': {...}, 'tenant': {...} }`
+  /// để tái dùng được với màn hình xem chi tiết/PDF hợp đồng.
+  Future<List<Map<String, dynamic>>> getTenantContractHistory(
+    String firebaseUid,
+  ) async {
+    final db = await instance.database;
+
+    // 1. Local user -> tenant
+    final userMaps = await db.query(
+      'users',
+      columns: ['id'],
+      where: 'firebase_uid = ?',
+      whereArgs: [firebaseUid],
+    );
+    if (userMaps.isEmpty) return [];
+    final localUserId = userMaps.first['id'] as int;
+
+    final tenantMaps = await db.query(
+      'tenants',
+      where: 'user_id = ?',
+      whereArgs: [localUserId],
+    );
+    if (tenantMaps.isEmpty) return [];
+    final tenantData = tenantMaps.first;
+    final tenantId = tenantData['id'] as int;
+
+    // 2. Tất cả hợp đồng của tenant, mới nhất lên đầu
+    final contractMaps = await db.query(
+      'contracts',
+      where: 'tenant_id = ?',
+      whereArgs: [tenantId],
+      orderBy: 'start_date DESC, id DESC',
+    );
+
+    // 3. Ghép thông tin phòng cho từng hợp đồng
+    final history = <Map<String, dynamic>>[];
+    for (final contractData in contractMaps) {
+      final roomId = contractData['room_id'] as int;
+      final roomMaps = await db.query(
+        'rooms',
+        where: 'id = ?',
+        whereArgs: [roomId],
+        limit: 1,
+      );
+      history.add({
+        'contract': contractData,
+        'room': roomMaps.isNotEmpty ? roomMaps.first : null,
+        'tenant': tenantData,
+      });
+    }
+    return history;
   }
 }
 
