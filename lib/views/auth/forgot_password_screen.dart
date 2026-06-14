@@ -6,7 +6,9 @@ import 'package:tenant_management_app/services/auth_service.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key});
+  const ForgotPasswordScreen({super.key, this.resetCode});
+
+  final String? resetCode;
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
@@ -14,7 +16,6 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
-  final _codeController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -22,11 +23,37 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _emailSent = false;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _loadedRouteArgs = false;
+  String? _resetCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _resetCode = widget.resetCode;
+    _emailSent = _resetCode != null;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loadedRouteArgs) return;
+    _loadedRouteArgs = true;
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final resetCode = _resetCodeFromArgs(args);
+    if (resetCode == null) return;
+
+    _resetCode = resetCode;
+    _emailSent = true;
+
+    if (args is Map && args['email'] is String) {
+      _emailController.text = (args['email'] as String).trim();
+    }
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
-    _codeController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -199,7 +226,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Nhập email tài khoản. Firebase sẽ gửi link đặt lại mật khẩu, bạn có thể dán toàn bộ link hoặc mã oobCode vào bước tiếp theo.',
+          'Nhập email tài khoản để nhận xác thực đặt lại mật khẩu.',
           style: TextStyle(fontSize: 13, color: kOnSurfaceVariant, height: 1.5),
         ),
         const SizedBox(height: 28),
@@ -238,7 +265,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Email đã gửi tới ${_emailController.text.trim()}. Kiểm tra hộp thư hoặc spam, sau đó dán link đặt lại mật khẩu vào đây.',
+          'Email đã gửi tới ${_emailController.text.trim()}. Nhập mật khẩu mới của bạn bên dưới.',
           style: const TextStyle(
             fontSize: 13,
             color: kOnSurfaceVariant,
@@ -246,14 +273,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        _buildInputLabel('Link reset hoặc mã oobCode'),
-        const SizedBox(height: 8),
-        _buildTextField(
-          controller: _codeController,
-          hint: 'Dán link từ email Firebase',
-          icon: Icons.key_rounded,
-        ),
-        const SizedBox(height: 18),
         _buildInputLabel('Mật khẩu mới'),
         const SizedBox(height: 8),
         _buildPasswordField(
@@ -496,12 +515,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _confirmNewPassword() async {
-    final code = _extractResetCode(_codeController.text);
+    final code = _resetCode;
     final newPassword = _newPasswordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
     if (code == null) {
-      _showSnackBar('Vui lòng dán link reset hoặc mã oobCode từ email.');
+      _showSnackBar('Vui lòng mở link đặt lại mật khẩu từ email để xác thực.');
       return;
     }
     if (newPassword.length < 6) {
@@ -536,6 +555,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   bool _isValidEmail(String value) {
     return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value);
+  }
+
+  String? _resetCodeFromArgs(Object? args) {
+    if (args is String) return _extractResetCode(args);
+    if (args is! Map) return null;
+
+    for (final key in const ['resetCode', 'oobCode', 'link']) {
+      final value = args[key];
+      if (value is! String) continue;
+      final code = _extractResetCode(value);
+      if (code != null) return code;
+    }
+
+    return null;
   }
 
   String? _extractResetCode(String value) {

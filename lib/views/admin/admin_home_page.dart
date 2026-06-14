@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -845,6 +846,7 @@ class _ApproveRequestDialogState extends State<_ApproveRequestDialog> {
                 _buildInfoRow('Ngày dự kiến thuê:', widget.request.startDate),
                 _buildInfoRow('Thuê phòng:', widget.request.roomNumber),
                 _buildInfoRow('Giá phòng:', '${roomPrice.toStringAsFixed(0).replaceAllMapped(RegExp(r"(\d{3})(?=\d)"), (m) => "${m[1]}.")} VNĐ/tháng'),
+                _buildRoommatesSection(widget.request.roommates),
 
                 const SizedBox(height: 20),
                 Text('CẤU HÌNH HỢP ĐỒNG', style: AppStyles.caption(context, fontWeight: FontWeight.w900, color: AppColors.sanctuaryDark)),
@@ -991,6 +993,63 @@ class _ApproveRequestDialogState extends State<_ApproveRequestDialog> {
         ],
       ),
     );
+  }
+
+  Widget _buildRoommatesSection(String? roommatesJson) {
+    if (roommatesJson == null || roommatesJson.isEmpty) return const SizedBox();
+    try {
+      final List<dynamic> list = jsonDecode(roommatesJson);
+      if (list.isEmpty) return const SizedBox();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          Text(
+            'THÔNG TIN NGƯỜI Ở CÙNG (${list.length})',
+            style: AppStyles.caption(context, fontWeight: FontWeight.w900, color: AppColors.sanctuaryDark),
+          ),
+          const SizedBox(height: 6),
+          ...list.asMap().entries.map((entry) {
+            final idx = entry.key + 1;
+            final item = entry.value as Map<String, dynamic>;
+            final name = item['full_name'] ?? '';
+            final cccd = item['cccd'] ?? '';
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      'Người ở cùng $idx:',
+                      style: AppStyles.caption(context, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: AppStyles.body(context, fontWeight: FontWeight.w700, color: AppColors.sanctuaryInk),
+                        ),
+                        Text(
+                          'CCCD: $cccd',
+                          style: AppStyles.caption(context, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      );
+    } catch (e) {
+      return const SizedBox();
+    }
   }
 
   Future<void> _handleReject() async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tenant_management_app/models/user.dart';
 import 'package:tenant_management_app/models/facility.dart';
 import 'package:tenant_management_app/models/room.dart';
@@ -34,7 +35,12 @@ class AppState extends ChangeNotifier {
   String tenantSearchQuery = '';
 
   // Stats
-  Map<String, int> roomStats = {'total': 0, 'empty': 0, 'rented': 0, 'maintenance': 0};
+  Map<String, int> roomStats = {
+    'total': 0,
+    'empty': 0,
+    'rented': 0,
+    'maintenance': 0,
+  };
   int unpaidInvoicesCount = 0;
   Map<String, double> monthlyRevenue = {};
   Map<String, double> revenueSummary = {'paid': 0, 'unpaid': 0};
@@ -54,7 +60,8 @@ class AppState extends ChangeNotifier {
   List<InvoiceModel> get invoices => _invoices;
   List<NotificationModel> get notifications => _notifications;
   List<RentalRequestModel> get rentalRequests => _rentalRequests;
-  List<RentalRequestModel> get pendingRequests => _rentalRequests.where((r) => r.status == 'pending').toList();
+  List<RentalRequestModel> get pendingRequests =>
+      _rentalRequests.where((r) => r.status == 'pending').toList();
   bool get isLoading => _isLoading;
   String get currentBillingMonth => _formatBillingMonth(DateTime.now());
 
@@ -126,14 +133,18 @@ class AppState extends ChangeNotifier {
     _tenants = await _db.getAllTenants();
     _contracts = await _db.getAllContracts();
     _invoices = await _db.getAllInvoices();
-    _notifications = await _db.getNotificationsForUser(_currentUser!.uid.hashCode);
-    
+    _notifications = await _db.getNotificationsForUser(
+      _currentUser!.uid.hashCode,
+    );
+
     // Fetch rental requests
     _rentalRequests = await _db.getAllRentalRequests();
 
     // If role is tenant, resolve their active room & contract details from database helper
     if (_currentUser!.role == 'tenant') {
-      activeRoomData = await _db.getTenantActiveRoomAndContract(_currentUser!.uid);
+      activeRoomData = await _db.getTenantActiveRoomAndContract(
+        _currentUser!.uid,
+      );
     } else {
       activeRoomData = null;
     }
@@ -142,7 +153,9 @@ class AppState extends ChangeNotifier {
     roomStats = await _db.getRoomStatistics();
     unpaidInvoicesCount = await _db.getUnpaidInvoicesCount();
     monthlyRevenue = await _db.getRevenueByMonth();
-    revenueSummary = await _db.getRevenueSummary(billingMonth: currentBillingMonth);
+    revenueSummary = await _db.getRevenueSummary(
+      billingMonth: currentBillingMonth,
+    );
     debtorList = await _db.getDebtorList(billingMonth: currentBillingMonth);
 
     applyFilters();
@@ -185,12 +198,43 @@ class AppState extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> changeCurrentUserPassword(String currentPassword, String newPassword) async {
+  Future<PasswordChangeResult> changeCurrentUserPassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     try {
       await AuthService.changePassword(currentPassword, newPassword);
-      return true;
+      return const PasswordChangeResult.success();
+    } on FirebaseAuthException catch (e) {
+      return PasswordChangeResult.failure(_passwordChangeErrorMessage(e));
     } catch (_) {
-      return false;
+      return const PasswordChangeResult.failure(
+        'Không thể đổi mật khẩu. Vui lòng thử lại.',
+      );
+    }
+  }
+
+  String _passwordChangeErrorMessage(FirebaseAuthException error) {
+    switch (error.code) {
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Mật khẩu hiện tại không đúng.';
+      case 'weak-password':
+        return 'Mật khẩu mới cần ít nhất 6 ký tự.';
+      case 'requires-recent-login':
+        return 'Phiên đăng nhập đã cũ. Vui lòng đăng xuất rồi đăng nhập lại trước khi đổi mật khẩu.';
+      case 'network-request-failed':
+        return 'Không có kết nối mạng. Vui lòng kiểm tra internet rồi thử lại.';
+      case 'too-many-requests':
+        return 'Bạn thao tác quá nhiều lần. Vui lòng chờ một lát rồi thử lại.';
+      case 'user-mismatch':
+      case 'user-not-found':
+      case 'no-user':
+        return 'Không tìm thấy phiên đăng nhập hiện tại. Vui lòng đăng nhập lại.';
+      default:
+        return error.message?.trim().isNotEmpty == true
+            ? error.message!.trim()
+            : 'Không thể đổi mật khẩu. Vui lòng thử lại.';
     }
   }
 
@@ -217,7 +261,9 @@ class AppState extends ChangeNotifier {
     setLoading(true);
     try {
       final contract = await _db.getContractById(contractId);
-      final tenant = contract != null ? await _db.getTenantById(contract.tenantId) : null;
+      final tenant = contract != null
+          ? await _db.getTenantById(contract.tenantId)
+          : null;
       final room = await _db.getRoomById(roomId);
 
       // 1. Sync on Firestore
@@ -229,7 +275,10 @@ class AppState extends ChangeNotifier {
       }
 
       // 2. Local SQLite update
-      final affectedRows = await _db.terminateContractWithRoomSync(contractId, roomId);
+      final affectedRows = await _db.terminateContractWithRoomSync(
+        contractId,
+        roomId,
+      );
       if (affectedRows > 0) {
         await refreshAllData();
         setLoading(false);
@@ -249,7 +298,9 @@ class AppState extends ChangeNotifier {
     required String hometown,
   }) async {
     final activeData = activeRoomData;
-    if (activeData == null || activeData['room'] == null || activeData['contract'] == null) {
+    if (activeData == null ||
+        activeData['room'] == null ||
+        activeData['contract'] == null) {
       return false;
     }
     setLoading(true);
@@ -274,22 +325,26 @@ class AppState extends ChangeNotifier {
       );
 
       // 2. Insert locally to SQLite
-      final localTenantId = await _db.insertTenant(TenantModel(
-        fullName: fullName,
-        phone: phone,
-        cccd: cccd,
-        hometown: hometown,
-        startDate: todayStr,
-      ));
+      final localTenantId = await _db.insertTenant(
+        TenantModel(
+          fullName: fullName,
+          phone: phone,
+          cccd: cccd,
+          hometown: hometown,
+          startDate: todayStr,
+        ),
+      );
 
-      await _db.insertContract(ContractModel(
-        roomId: roomId,
-        tenantId: localTenantId,
-        startDate: todayStr,
-        endDate: endDate,
-        deposit: 0.0,
-        status: 'active',
-      ));
+      await _db.insertContract(
+        ContractModel(
+          roomId: roomId,
+          tenantId: localTenantId,
+          startDate: todayStr,
+          endDate: endDate,
+          deposit: 0.0,
+          status: 'active',
+        ),
+      );
 
       await refreshAllData();
       setLoading(false);
@@ -320,7 +375,12 @@ class AppState extends ChangeNotifier {
 
       // 2. Update locally in SQLite
       final db = await _db.database;
-      final tenantMaps = await db.query('tenants', columns: ['id'], where: 'cccd = ?', whereArgs: [cccd]);
+      final tenantMaps = await db.query(
+        'tenants',
+        columns: ['id'],
+        where: 'cccd = ?',
+        whereArgs: [cccd],
+      );
       if (tenantMaps.isNotEmpty) {
         final tenantId = tenantMaps.first['id'] as int;
         await db.update(
@@ -359,14 +419,23 @@ class AppState extends ChangeNotifier {
 
       // Calculate new end date
       final currentEnd = DateTime.parse(contract.endDate);
-      final newEnd = DateTime(currentEnd.year, currentEnd.month + months, currentEnd.day);
+      final newEnd = DateTime(
+        currentEnd.year,
+        currentEnd.month + months,
+        currentEnd.day,
+      );
       final newEndDateStr = newEnd.toIso8601String().substring(0, 10);
 
       // Fetch userUid of tenant to notify them
       String? tenantUid;
       if (tenant.userId != null) {
         final db = await _db.database;
-        final userMaps = await db.query('users', columns: ['firebase_uid'], where: 'id = ?', whereArgs: [tenant.userId]);
+        final userMaps = await db.query(
+          'users',
+          columns: ['firebase_uid'],
+          where: 'id = ?',
+          whereArgs: [tenant.userId],
+        );
         if (userMaps.isNotEmpty) {
           tenantUid = userMaps.first['firebase_uid'] as String?;
         }
@@ -399,15 +468,32 @@ class AppState extends ChangeNotifier {
     try {
       final db = await _db.database;
       // Get room number
-      final roomMaps = await db.query('rooms', columns: ['room_number'], where: 'id = ?', whereArgs: [invoice.roomId]);
-      final roomNumber = roomMaps.isNotEmpty ? roomMaps.first['room_number'] as String : '';
+      final roomMaps = await db.query(
+        'rooms',
+        columns: ['room_number'],
+        where: 'id = ?',
+        whereArgs: [invoice.roomId],
+      );
+      final roomNumber = roomMaps.isNotEmpty
+          ? roomMaps.first['room_number'] as String
+          : '';
 
       // Get tenant CCCD
-      final contractMaps = await db.query('contracts', columns: ['tenant_id'], where: 'id = ?', whereArgs: [invoice.contractId]);
+      final contractMaps = await db.query(
+        'contracts',
+        columns: ['tenant_id'],
+        where: 'id = ?',
+        whereArgs: [invoice.contractId],
+      );
       String tenantCccd = '';
       if (contractMaps.isNotEmpty) {
         final tenantId = contractMaps.first['tenant_id'] as int;
-        final tenantMaps = await db.query('tenants', columns: ['cccd'], where: 'id = ?', whereArgs: [tenantId]);
+        final tenantMaps = await db.query(
+          'tenants',
+          columns: ['cccd'],
+          where: 'id = ?',
+          whereArgs: [tenantId],
+        );
         if (tenantMaps.isNotEmpty) {
           tenantCccd = tenantMaps.first['cccd'] as String;
         }
@@ -442,14 +528,20 @@ class AppState extends ChangeNotifier {
     final today = DateTime.now().toIso8601String().substring(0, 10);
     try {
       final localInvoice = await _db.getInvoiceById(invoiceId);
-      if (localInvoice != null && localInvoice.firestoreId != null && localInvoice.firestoreId!.isNotEmpty) {
+      if (localInvoice != null &&
+          localInvoice.firestoreId != null &&
+          localInvoice.firestoreId!.isNotEmpty) {
         await FirestoreSyncService.updateInvoiceStatus(
           firestoreId: localInvoice.firestoreId!,
           status: 'paid',
           paymentDate: today,
         );
       }
-      final affectedRows = await _db.updateInvoiceStatus(invoiceId, 'paid', today);
+      final affectedRows = await _db.updateInvoiceStatus(
+        invoiceId,
+        'paid',
+        today,
+      );
       if (affectedRows > 0) {
         await refreshAllData();
         return true;
@@ -474,8 +566,10 @@ class AppState extends ChangeNotifier {
   void applyFilters() {
     // Rooms filter
     _filteredRooms = _rooms.where((room) {
-      final matchesFacility = selectedFacilityId == null || room.facilityId == selectedFacilityId;
-      final matchesStatus = selectedRoomStatus == 'all' || room.status == selectedRoomStatus;
+      final matchesFacility =
+          selectedFacilityId == null || room.facilityId == selectedFacilityId;
+      final matchesStatus =
+          selectedRoomStatus == 'all' || room.status == selectedRoomStatus;
       return matchesFacility && matchesStatus;
     }).toList();
 
@@ -485,9 +579,12 @@ class AppState extends ChangeNotifier {
     } else {
       String queryLower = _removeDiacritics(tenantSearchQuery.toLowerCase());
       _filteredTenants = _tenants.where((tenant) {
-        String nameNormalized = _removeDiacritics(tenant.fullName.toLowerCase());
+        String nameNormalized = _removeDiacritics(
+          tenant.fullName.toLowerCase(),
+        );
         String phoneNormalized = tenant.phone.trim();
-        return nameNormalized.contains(queryLower) || phoneNormalized.contains(queryLower);
+        return nameNormalized.contains(queryLower) ||
+            phoneNormalized.contains(queryLower);
       }).toList();
     }
 
@@ -504,7 +601,9 @@ class AppState extends ChangeNotifier {
   Future<void> readNotification(int notifId) async {
     await _db.markNotificationAsRead(notifId);
     if (_currentUser != null) {
-      _notifications = await _db.getNotificationsForUser(_currentUser!.uid.hashCode);
+      _notifications = await _db.getNotificationsForUser(
+        _currentUser!.uid.hashCode,
+      );
       notifyListeners();
     }
   }
@@ -526,7 +625,7 @@ class AppState extends ChangeNotifier {
       'dđ',
       'DĐ',
       'yỳýỷỹỵ',
-      'YỲÝỶỸỴ'
+      'YỲÝỶỸỴ',
     ];
 
     String result = str;
@@ -549,11 +648,11 @@ class AppState extends ChangeNotifier {
     try {
       // 1. Send to Firestore & get cloud ID
       final firestoreId = await FirestoreSyncService.sendRentalRequest(request);
-      
+
       // 2. Insert to local SQLite
       final localRequest = request.copyWith(firestoreId: firestoreId);
       await _db.insertRentalRequest(localRequest);
-      
+
       await refreshAllData();
       setLoading(false);
       return true;
@@ -639,4 +738,16 @@ class AppState extends ChangeNotifier {
       return false;
     }
   }
+}
+
+class PasswordChangeResult {
+  const PasswordChangeResult._({required this.success, this.errorMessage});
+
+  const PasswordChangeResult.success() : this._(success: true);
+
+  const PasswordChangeResult.failure(String message)
+    : this._(success: false, errorMessage: message);
+
+  final bool success;
+  final String? errorMessage;
 }

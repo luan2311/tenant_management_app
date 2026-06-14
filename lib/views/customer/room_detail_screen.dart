@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 import 'package:tenant_management_app/mock/room_mock_data.dart';
 import 'rental_request_screen.dart';
@@ -559,6 +560,289 @@ class _BottomActionBar extends StatelessWidget {
   final RoomData room;
   const _BottomActionBar({required this.isAvailable, required this.room});
 
+  void _showContactDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Thông tin liên hệ',
+                      style: TextStyle(
+                        fontFamily: 'Be Vietnam Pro',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: kOnSurface,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: kSurfaceContainerHigh.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: kOnSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                // Landlord Card
+                Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            kPrimary,
+                            kPrimary.withValues(alpha: 0.8),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: kPrimary.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        'ML',
+                        style: TextStyle(
+                          fontFamily: 'Be Vietnam Pro',
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Chủ trọ',
+                            style: TextStyle(
+                              fontFamily: 'Be Vietnam Pro',
+                              fontSize: 12,
+                              color: kOnSurfaceVariant.withValues(alpha: 0.8),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Minh Luân',
+                            style: TextStyle(
+                              fontFamily: 'Be Vietnam Pro',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: kOnSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                // Phone Card with copy action
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: kSurfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: kOutlineVariant.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.phone_in_talk_rounded,
+                        color: kPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Số điện thoại',
+                              style: TextStyle(
+                                fontFamily: 'Be Vietnam Pro',
+                                fontSize: 11,
+                                color: kOnSurfaceVariant.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              '0898449950',
+                              style: TextStyle(
+                                fontFamily: 'Be Vietnam Pro',
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: kOnSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Copy Button
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(const ClipboardData(text: '0898449950'));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đã sao chép số điện thoại chủ trọ!'),
+                              behavior: SnackBarBehavior.floating,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: kOutlineVariant.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.copy_rounded,
+                            color: kPrimary,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Dialog Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                        child: const Text(
+                          'Đóng',
+                          style: TextStyle(
+                            fontFamily: 'Be Vietnam Pro',
+                            fontWeight: FontWeight.w600,
+                            color: kOnSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              kPrimary,
+                              Color(0xFF4A84A9),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kPrimary.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Clipboard.setData(const ClipboardData(text: '0898449950'));
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Đã sao chép số điện thoại để gọi!'),
+                                behavior: SnackBarBehavior.floating,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            shadowColor: Colors.transparent,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                          child: const Text(
+                            'Gọi điện',
+                            style: TextStyle(
+                              fontFamily: 'Be Vietnam Pro',
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
@@ -582,13 +866,7 @@ class _BottomActionBar extends StatelessWidget {
                 Expanded(
                   child: _OutlineButton(
                     label: 'Liên hệ chủ trọ',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                                Text('Tính năng liên hệ sẽ có ở Sprint 4')),
-                      );
-                    },
+                    onTap: () => _showContactDialog(context),
                   ),
                 ),
                 const SizedBox(width: 12),

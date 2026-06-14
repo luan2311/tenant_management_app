@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
         await db.execute('DROP TABLE IF EXISTS rental_requests');
@@ -183,6 +183,7 @@ class DatabaseHelper {
           occupants INTEGER DEFAULT 1,
           status TEXT CHECK(status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
           created_at TEXT NOT NULL,
+          roommates TEXT,
           FOREIGN KEY(room_id) REFERENCES rooms(id) ON DELETE CASCADE
       )
     ''');

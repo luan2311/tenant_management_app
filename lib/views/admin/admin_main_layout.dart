@@ -81,13 +81,37 @@ class _AdminNavBar extends StatelessWidget {
   const _AdminNavBar({required this.currentIndex, required this.onTap});
 
   static const _items = [
-    (icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: 'Trang chủ'),
-    (icon: Icons.meeting_room_outlined, activeIcon: Icons.meeting_room, label: 'Phòng'),
+    (
+      icon: Icons.dashboard_outlined,
+      activeIcon: Icons.dashboard,
+      label: 'Trang chủ',
+    ),
+    (
+      icon: Icons.meeting_room_outlined,
+      activeIcon: Icons.meeting_room,
+      label: 'Phòng',
+    ),
     (icon: Icons.people_outline, activeIcon: Icons.people, label: 'Khách'),
-    (icon: Icons.description_outlined, activeIcon: Icons.description, label: 'Hợp đồng'),
-    (icon: Icons.receipt_long_outlined, activeIcon: Icons.receipt_long, label: 'Hóa đơn'),
-    (icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart, label: 'Thống kê'),
-    (icon: Icons.account_circle_outlined, activeIcon: Icons.account_circle, label: 'Cá nhân'),
+    (
+      icon: Icons.description_outlined,
+      activeIcon: Icons.description,
+      label: 'Hợp đồng',
+    ),
+    (
+      icon: Icons.receipt_long_outlined,
+      activeIcon: Icons.receipt_long,
+      label: 'Hóa đơn',
+    ),
+    (
+      icon: Icons.bar_chart_outlined,
+      activeIcon: Icons.bar_chart,
+      label: 'Thống kê',
+    ),
+    (
+      icon: Icons.account_circle_outlined,
+      activeIcon: Icons.account_circle,
+      label: 'Cá nhân',
+    ),
   ];
 
   @override
@@ -322,103 +346,137 @@ class AdminProfilePage extends StatelessWidget {
     final newController = TextEditingController();
     final confirmController = TextEditingController();
 
-    final success = await showDialog<bool>(
+    var isSubmitting = false;
+    final result = await showDialog<PasswordChangeResult>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          title: Text(
-            'Đổi mật khẩu',
-            style: AppStyles.title(
-              dialogContext,
-              color: AppColors.sanctuaryInk,
-              fontWeight: FontWeight.w900,
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
             ),
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: currentController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Mật khẩu hiện tại',
+            title: Text(
+              'Đổi mật khẩu',
+              style: AppStyles.title(
+                dialogContext,
+                color: AppColors.sanctuaryInk,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: currentController,
+                    obscureText: true,
+                    enabled: !isSubmitting,
+                    decoration: const InputDecoration(
+                      labelText: 'Mật khẩu hiện tại',
+                    ),
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Vui lòng nhập mật khẩu hiện tại'
+                        : null,
                   ),
-                  validator: (value) => (value == null || value.isEmpty)
-                      ? 'Vui lòng nhập mật khẩu hiện tại'
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: newController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Mật khẩu mới'),
-                  validator: (value) {
-                    if (value == null || value.length < 6) {
-                      return 'Mật khẩu mới cần ít nhất 6 ký tự';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: confirmController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Nhập lại mật khẩu mới',
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: newController,
+                    obscureText: true,
+                    enabled: !isSubmitting,
+                    decoration: const InputDecoration(
+                      labelText: 'Mật khẩu mới',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.length < 6) {
+                        return 'Mật khẩu mới cần ít nhất 6 ký tự';
+                      }
+                      return null;
+                    },
                   ),
-                  validator: (value) => value != newController.text
-                      ? 'Mật khẩu nhập lại chưa khớp'
-                      : null,
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: confirmController,
+                    obscureText: true,
+                    enabled: !isSubmitting,
+                    decoration: const InputDecoration(
+                      labelText: 'Nhập lại mật khẩu mới',
+                    ),
+                    validator: (value) => value != newController.text
+                        ? 'Mật khẩu nhập lại chưa khớp'
+                        : null,
+                  ),
+                ],
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(),
+                child: Text(
+                  'Hủy',
+                  style: AppStyles.body(
+                    dialogContext,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        if (formKey.currentState?.validate() != true) return;
+                        setDialogState(() => isSubmitting = true);
+                        final changeResult = await appState
+                            .changeCurrentUserPassword(
+                              currentController.text,
+                              newController.text,
+                            );
+                        if (!dialogContext.mounted) return;
+                        if (changeResult.success) {
+                          Navigator.of(dialogContext).pop(changeResult);
+                          return;
+                        }
+                        setDialogState(() => isSubmitting = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              changeResult.errorMessage ??
+                                  'Không thể đổi mật khẩu. Vui lòng thử lại.',
+                            ),
+                          ),
+                        );
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.sanctuaryDark,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: isSubmitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.save_outlined, size: 18),
+                label: Text(
+                  'Lưu',
+                  style: AppStyles.body(
+                    dialogContext,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                'Hủy',
-                style: AppStyles.body(
-                  dialogContext,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            ElevatedButton.icon(
-              onPressed: () async {
-                if (formKey.currentState?.validate() != true) return;
-                final changed = await appState.changeCurrentUserPassword(
-                  currentController.text,
-                  newController.text,
-                );
-                if (dialogContext.mounted) {
-                  Navigator.of(dialogContext).pop(changed);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.sanctuaryDark,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              icon: const Icon(Icons.save_outlined, size: 18),
-              label: Text(
-                'Lưu',
-                style: AppStyles.body(
-                  dialogContext,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ],
         );
       },
     );
@@ -427,12 +485,12 @@ class AdminProfilePage extends StatelessWidget {
     newController.dispose();
     confirmController.dispose();
 
-    if (!context.mounted || success == null) return;
+    if (!context.mounted || result == null) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success
+          result.success
               ? 'Đã cập nhật mật khẩu admin.'
               : 'Mật khẩu hiện tại không đúng.',
         ),

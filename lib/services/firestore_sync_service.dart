@@ -301,6 +301,7 @@ class FirestoreSyncService {
       'occupants': request.occupants,
       'status': request.status,
       'created_at': request.createdAt,
+      'roommates': request.roommates,
     });
 
     // Send admin notification

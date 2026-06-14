@@ -12,6 +12,7 @@ class RentalRequestModel {
   final int occupants;
   final String status; // 'pending', 'approved', 'rejected'
   final String createdAt; // YYYY-MM-DD HH:MM:SS
+  final String? roommates; // JSON String representing roommate details
 
   RentalRequestModel({
     this.id,
@@ -27,6 +28,7 @@ class RentalRequestModel {
     this.occupants = 1,
     this.status = 'pending',
     required this.createdAt,
+    this.roommates,
   });
 
   factory RentalRequestModel.fromMap(Map<String, dynamic> map, {int? localId}) {
@@ -44,6 +46,7 @@ class RentalRequestModel {
       occupants: map['occupants'] as int? ?? 1,
       status: map['status'] as String? ?? 'pending',
       createdAt: map['created_at'] as String,
+      roommates: map['roommates'] as String?,
     );
   }
 
@@ -62,6 +65,7 @@ class RentalRequestModel {
       'occupants': occupants,
       'status': status,
       'created_at': createdAt,
+      'roommates': roommates,
     };
   }
 
@@ -79,6 +83,7 @@ class RentalRequestModel {
     int? occupants,
     String? status,
     String? createdAt,
+    String? roommates,
   }) {
     return RentalRequestModel(
       id: id ?? this.id,
@@ -94,6 +99,7 @@ class RentalRequestModel {
       occupants: occupants ?? this.occupants,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      roommates: roommates ?? this.roommates,
     );
   }
 }
