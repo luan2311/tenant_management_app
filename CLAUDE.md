@@ -35,13 +35,13 @@ flutter build apk --release
 ### Startup Flow — Xác thực tập trung qua Firebase
 
 **Kiến trúc xác thực (`main.dart`):**  
-Ứng dụng lắng nghe trạng thái đăng nhập qua `StreamBuilder(stream: AuthService.authStateChanges())`.
-- Nếu chưa đăng nhập: Hiển thị `LoginScreen` (màn hình đăng nhập chung cho cả admin lẫn tenant).
-- Nếu đã đăng nhập: `_SessionGate` gọi `AppState.checkAutoLogin()` để tải profile từ Firestore:
+Ứng dụng lắng nghe trạng thái đăng nhập qua `StreamBuilder(stream: AuthService.authStateChanges())` trong `_SessionGate`.
+- Nếu chưa đăng nhập: Hiển thị `LoginScreen`.
+- Nếu đã đăng nhập: Chuyển sang `_RoleGate` (StatefulWidget) — gọi `AppState.checkAutoLogin()` một lần trong `initState()`:
   - Nếu `role == 'admin'`: Điều hướng tới `AdminMainLayout`.
   - Nếu `role == 'tenant'`: Điều hướng tới `TenantShell`.
 
-**Lưu ý quan trọng:** Không còn màn hình đăng nhập riêng cho admin. Cả admin lẫn tenant đều đăng nhập qua một `LoginScreen` duy nhất — role-routing xảy ra trong `_SessionGate` dựa trên Firestore profile.
+**Lưu ý quan trọng:** Không còn màn hình đăng nhập riêng cho admin. Cả admin lẫn tenant đều đăng nhập qua một `LoginScreen` duy nhất — role-routing xảy ra trong `_RoleGate` dựa trên Firestore profile.
 
 **Firebase Services (`AuthService`):**
 - Xác thực qua email/password (`signInWithEmail`, `registerWithEmail`).
@@ -56,9 +56,9 @@ Tất cả UI admin đọc state qua `context.watch<AppState>()` hoặc `context
 
 ### Navigation
 - **Tenant tabs:** `TenantShell` dùng `IndexedStack` — giữ nguyên state mỗi tab (4 tabs)
-- **Admin tabs:** `AdminMainLayout` dùng `IndexedStack` — 5 tabs (Home, Rooms, Tenants, Statistics, Profile)
+- **Admin tabs:** `AdminMainLayout` dùng `IndexedStack` — 7 tabs (Home, Rooms, Tenants, Contracts, Invoices, Statistics, Profile)
 - **Push detail:** `Navigator.push(MaterialPageRoute(...))` — nổi trên shell
-- **Sau login:** `_SessionGate` tự điều hướng dựa trên role — không cần `pushReplacement` thủ công
+- **Sau login:** `_SessionGate` → `_RoleGate` tự điều hướng dựa trên role — không cần `pushReplacement` thủ công
 - **Route `/home`** khai báo trong `MaterialApp.routes` → `TenantShell`
 
 ### Cấu trúc `lib/`
@@ -89,26 +89,37 @@ lib/
     │   ├── register_screen.dart, forgot_password_screen.dart, onboarding_screen.dart
     ├── tenant_shell.dart            # IndexedStack 4 tabs cho Khách thuê
     ├── customer/                    # Màn hình phía Khách thuê (Huy)
-    │   ├── home_page_screen.dart, explore_screen.dart (mock RoomData)
-    │   ├── room_detail_screen.dart, rental_request_screen.dart, notification_screen.dart
+    │   ├── home_page_screen.dart, Explore_screen.dart (mock RoomData)
+    │   ├── room_detail_screen.dart, rental_request_screen.dart
+    │   ├── notification_screen.dart, profile_screen.dart
     ├── tenant/                      # Màn hình Khách thuê (Khánh)
     │   ├── my_room_screen.dart, contract_detail_screen.dart, my_invoice_screen.dart
     └── admin/                       # Admin UI (Luân)
         ├── admin_main_layout.dart   # Root shell + AdminProfilePage (đổi mật khẩu, đăng xuất)
-        ├── admin_home_page.dart     # Dashboard: room stats, unpaid invoices, debtor list
+        ├── admin_home_page.dart     # Dashboard: room stats, unpaid invoices, debtor list, pending rental requests
         ├── admin_rooms_page.dart    # Filter theo facility/status, thêm/xóa phòng
         ├── admin_tenants_page.dart  # Tìm kiếm (diacritics-aware), xem chi tiết khách
+        ├── admin_contracts_page.dart   # Danh sách hợp đồng, kết nối AppState
+        ├── invoice_admin_screen.dart   # AdminInvoicesPage — kết nối AppState (markInvoicePaid, filter status)
+        ├── create_invoice_screen.dart  # Form tạo hóa đơn mới — push từ invoice_admin_screen
         ├── admin_statistics_page.dart  # Biểu đồ doanh thu (fl_chart), revenue summary
         ├── admin_add_room_page.dart
-        ├── add_contract_screen.dart    # UI stub — chưa kết nối AppState/SQLite
-        └── invoice_admin_screen.dart   # UI stub — chưa kết nối AppState/SQLite
+        └── add_contract_screen.dart    # UI stub — form chưa kết nối AppState/SQLite
 ```
 
 ## Data Layer — Firebase + SQLite (Live)
 
 - **Authentication & Profiles (Firebase):** Toàn bộ session đăng nhập, đăng ký bằng Email, Google Sign-In và hồ sơ người dùng (UserModel) được lưu trữ và quản lý tập trung qua **Firebase Authentication** và **Cloud Firestore** (`users` collection).
-- **Business Data (SQLite):** Dữ liệu nghiệp vụ phòng trọ (`facilities`, `rooms`, `tenants`, `contracts`, `invoices`, `notifications`) vẫn được lưu trữ và truy vấn offline-first qua SQLite bằng `DatabaseHelper` singleton (`lumiere_stay.db`).
+- **Business Data (SQLite):** Dữ liệu nghiệp vụ phòng trọ (`facilities`, `rooms`, `tenants`, `contracts`, `invoices`, `notifications`, `rental_requests`) được lưu trữ và truy vấn offline-first qua SQLite bằng `DatabaseHelper` singleton (`lumiere_stay.db`).
 - **Seed & Local Compatibility:** DB SQLite vẫn duy trì bảng `users` cục bộ và seed dữ liệu mặc định. Tuy nhiên, các thao tác xác thực thực tế đều đi qua Firebase.
+- **DB version hiện tại: 7.** `onUpgrade` xóa toàn bộ bảng và tạo lại từ đầu (destructive migration) — tránh thay đổi schema mà không tăng version.
+
+**Thứ tự write trong AppState (Firestore → SQLite → refresh):**  
+Mọi thao tác ghi của admin đều theo pattern: (1) sync lên Firestore trước, (2) ghi vào SQLite local, (3) gọi `refreshAllData()`. Xem `terminateContract`, `approveRentalRequest`, `addRoommate`.
+
+**`FirestoreSyncService`** — tất cả static methods, sync theo chiều Firestore → SQLite:
+- `syncAll()`: kéo room_statuses, tenants, contracts, invoices, notifications, rental_requests từ Cloud về local
+- `sendRentalRequest()`, `approveRentalRequest()`, `rejectRentalRequest()`, `terminateContract()`, `addRoommate()`, `removeRoommate()`, `approveContractExtension()` — push local changes lên Firestore
 
 **Quy tắc đồng bộ trạng thái:**
 - Khi tạo contract → room status tự động → `'rented'` (dùng transaction)

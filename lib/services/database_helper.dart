@@ -39,7 +39,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
         await db.execute('DROP TABLE IF EXISTS rental_requests');
@@ -133,6 +133,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE invoices (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firestore_id TEXT,
           room_id INTEGER,
           contract_id INTEGER,
           billing_month TEXT NOT NULL,
@@ -1125,6 +1126,18 @@ class DatabaseHelper {
   }
 
   // --- Invoices CRUD ---
+  Future<InvoiceModel?> getInvoiceById(int id) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'invoices',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return InvoiceModel.fromMap(maps.first);
+  }
+
   Future<List<InvoiceModel>> getAllInvoices() async {
     final db = await instance.database;
     final maps = await db.query('invoices');

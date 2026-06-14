@@ -1,5 +1,6 @@
 class InvoiceModel {
   final int? id;
+  final String? firestoreId;
   final int roomId;
   final int contractId;
   final String billingMonth; // YYYY-MM
@@ -17,6 +18,7 @@ class InvoiceModel {
 
   InvoiceModel({
     this.id,
+    this.firestoreId,
     required this.roomId,
     required this.contractId,
     required this.billingMonth,
@@ -36,6 +38,7 @@ class InvoiceModel {
   factory InvoiceModel.fromMap(Map<String, dynamic> map) {
     return InvoiceModel(
       id: map['id'] as int?,
+      firestoreId: map['firestore_id'] as String?,
       roomId: map['room_id'] as int,
       contractId: map['contract_id'] as int,
       billingMonth: map['billing_month'] as String,
@@ -56,6 +59,7 @@ class InvoiceModel {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'firestore_id': firestoreId,
       'room_id': roomId,
       'contract_id': contractId,
       'billing_month': billingMonth,
@@ -75,6 +79,7 @@ class InvoiceModel {
 
   InvoiceModel copyWith({
     int? id,
+    String? firestoreId,
     int? roomId,
     int? contractId,
     String? billingMonth,
@@ -92,6 +97,7 @@ class InvoiceModel {
   }) {
     return InvoiceModel(
       id: id ?? this.id,
+      firestoreId: firestoreId ?? this.firestoreId,
       roomId: roomId ?? this.roomId,
       contractId: contractId ?? this.contractId,
       billingMonth: billingMonth ?? this.billingMonth,

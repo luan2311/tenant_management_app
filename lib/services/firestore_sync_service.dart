@@ -3,6 +3,7 @@ import 'package:tenant_management_app/models/rental_request.dart';
 import 'package:tenant_management_app/models/contract.dart';
 import 'package:tenant_management_app/models/tenant.dart';
 import 'package:tenant_management_app/models/notification.dart';
+import 'package:tenant_management_app/models/invoice.dart';
 import 'package:tenant_management_app/services/database_helper.dart';
 
 class FirestoreSyncService {
@@ -202,6 +203,80 @@ class FirestoreSyncService {
             },
             where: 'id = ?',
             whereArgs: [localNotifMaps.first['id']],
+          );
+        }
+      }
+
+      // 6. Sync Invoices
+      final invoiceSnap = await _firestore.collection('invoices').get();
+      for (var doc in invoiceSnap.docs) {
+        final data = doc.data();
+        final roomNumber = data['room_number'] as String;
+        final tenantCccd = data['tenant_cccd'] as String;
+
+        // Find local room_id
+        final roomMaps = await db.query('rooms', columns: ['id'], where: 'room_number = ?', whereArgs: [roomNumber]);
+        if (roomMaps.isEmpty) continue;
+        final roomId = roomMaps.first['id'] as int;
+
+        // Find local tenant_id
+        final tenantMaps = await db.query('tenants', columns: ['id'], where: 'cccd = ?', whereArgs: [tenantCccd]);
+        if (tenantMaps.isEmpty) continue;
+        final tenantId = tenantMaps.first['id'] as int;
+
+        // Find contract_id (matching room_id and tenant_id)
+        final contractMaps = await db.query(
+          'contracts',
+          columns: ['id'],
+          where: 'room_id = ? AND tenant_id = ? AND status = ?',
+          whereArgs: [roomId, tenantId, 'active'],
+        );
+        if (contractMaps.isEmpty) continue;
+        final contractId = contractMaps.first['id'] as int;
+
+        final localInvoiceMaps = await db.query(
+          'invoices',
+          where: 'firestore_id = ? OR (room_id = ? AND contract_id = ? AND billing_month = ?)',
+          whereArgs: [doc.id, roomId, contractId, data['billing_month']],
+        );
+
+        if (localInvoiceMaps.isEmpty) {
+          await db.insert('invoices', {
+            'firestore_id': doc.id,
+            'room_id': roomId,
+            'contract_id': contractId,
+            'billing_month': data['billing_month'],
+            'old_electricity': data['old_electricity'],
+            'new_electricity': data['new_electricity'],
+            'old_water': data['old_water'],
+            'new_water': data['new_water'],
+            'electricity_price': data['electricity_price'],
+            'water_price': data['water_price'],
+            'service_price': data['service_price'],
+            'other_price': data['other_price'],
+            'total_price': data['total_price'],
+            'status': data['status'],
+            'payment_date': data['payment_date'],
+          });
+        } else {
+          await db.update(
+            'invoices',
+            {
+              'firestore_id': doc.id,
+              'old_electricity': data['old_electricity'],
+              'new_electricity': data['new_electricity'],
+              'old_water': data['old_water'],
+              'new_water': data['new_water'],
+              'electricity_price': data['electricity_price'],
+              'water_price': data['water_price'],
+              'service_price': data['service_price'],
+              'other_price': data['other_price'],
+              'total_price': data['total_price'],
+              'status': data['status'],
+              'payment_date': data['payment_date'],
+            },
+            where: 'id = ?',
+            whereArgs: [localInvoiceMaps.first['id']],
           );
         }
       }
@@ -471,6 +546,47 @@ class FirestoreSyncService {
       'type': type,
       'created_at': DateTime.now().toIso8601String().replaceAll('T', ' ').substring(0, 19),
       'is_read': 0,
+    });
+  }
+
+  /// Pushes a new invoice or updates an existing one on Firestore.
+  static Future<String> saveInvoice(InvoiceModel invoice, {required String roomNumber, required String tenantCccd}) async {
+    final data = {
+      'room_number': roomNumber,
+      'tenant_cccd': tenantCccd,
+      'billing_month': invoice.billingMonth,
+      'old_electricity': invoice.oldElectricity,
+      'new_electricity': invoice.newElectricity,
+      'old_water': invoice.oldWater,
+      'new_water': invoice.newWater,
+      'electricity_price': invoice.electricityPrice,
+      'water_price': invoice.waterPrice,
+      'service_price': invoice.servicePrice,
+      'other_price': invoice.otherPrice,
+      'total_price': invoice.totalPrice,
+      'status': invoice.status,
+      'payment_date': invoice.paymentDate,
+    };
+
+    if (invoice.firestoreId == null || invoice.firestoreId!.isEmpty) {
+      final docRef = await _firestore.collection('invoices').add(data);
+      return docRef.id;
+    } else {
+      await _firestore.collection('invoices').doc(invoice.firestoreId).set(data, SetOptions(merge: true));
+      return invoice.firestoreId!;
+    }
+  }
+
+  /// Updates invoice status and payment date on Firestore.
+  static Future<void> updateInvoiceStatus({
+    required String firestoreId,
+    required String status,
+    String? paymentDate,
+  }) async {
+    if (firestoreId.isEmpty) return;
+    await _firestore.collection('invoices').doc(firestoreId).update({
+      'status': status,
+      'payment_date': paymentDate,
     });
   }
 }

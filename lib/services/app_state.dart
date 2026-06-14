@@ -396,11 +396,43 @@ class AppState extends ChangeNotifier {
 
   Future<bool> saveInvoice(InvoiceModel invoice) async {
     setLoading(true);
-    final affectedRows = invoice.id == null ? await _db.insertInvoice(invoice) : await _db.updateInvoice(invoice);
-    if (affectedRows > 0) {
-      await refreshAllData();
-      setLoading(false);
-      return true;
+    try {
+      final db = await _db.database;
+      // Get room number
+      final roomMaps = await db.query('rooms', columns: ['room_number'], where: 'id = ?', whereArgs: [invoice.roomId]);
+      final roomNumber = roomMaps.isNotEmpty ? roomMaps.first['room_number'] as String : '';
+
+      // Get tenant CCCD
+      final contractMaps = await db.query('contracts', columns: ['tenant_id'], where: 'id = ?', whereArgs: [invoice.contractId]);
+      String tenantCccd = '';
+      if (contractMaps.isNotEmpty) {
+        final tenantId = contractMaps.first['tenant_id'] as int;
+        final tenantMaps = await db.query('tenants', columns: ['cccd'], where: 'id = ?', whereArgs: [tenantId]);
+        if (tenantMaps.isNotEmpty) {
+          tenantCccd = tenantMaps.first['cccd'] as String;
+        }
+      }
+
+      // Sync to Firestore
+      final firestoreId = await FirestoreSyncService.saveInvoice(
+        invoice,
+        roomNumber: roomNumber,
+        tenantCccd: tenantCccd,
+      );
+
+      // Save locally with firestoreId
+      final invoiceWithFirestore = invoice.copyWith(firestoreId: firestoreId);
+      final affectedRows = invoice.id == null
+          ? await _db.insertInvoice(invoiceWithFirestore)
+          : await _db.updateInvoice(invoiceWithFirestore);
+
+      if (affectedRows > 0) {
+        await refreshAllData();
+        setLoading(false);
+        return true;
+      }
+    } catch (e) {
+      print("Error saving/syncing invoice: $e");
     }
     setLoading(false);
     return false;
@@ -408,10 +440,22 @@ class AppState extends ChangeNotifier {
 
   Future<bool> markInvoicePaid(int invoiceId) async {
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    final affectedRows = await _db.updateInvoiceStatus(invoiceId, 'paid', today);
-    if (affectedRows > 0) {
-      await refreshAllData();
-      return true;
+    try {
+      final localInvoice = await _db.getInvoiceById(invoiceId);
+      if (localInvoice != null && localInvoice.firestoreId != null && localInvoice.firestoreId!.isNotEmpty) {
+        await FirestoreSyncService.updateInvoiceStatus(
+          firestoreId: localInvoice.firestoreId!,
+          status: 'paid',
+          paymentDate: today,
+        );
+      }
+      final affectedRows = await _db.updateInvoiceStatus(invoiceId, 'paid', today);
+      if (affectedRows > 0) {
+        await refreshAllData();
+        return true;
+      }
+    } catch (e) {
+      print("Error marking invoice paid: $e");
     }
     return false;
   }
