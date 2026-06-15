@@ -67,6 +67,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - .env
     - docs/data/batdongsan_hcm_rooms_sample.json
 
   # An image asset can refer to one or more resolution-specific "variants", see

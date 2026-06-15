@@ -6,12 +6,14 @@ import 'package:tenant_management_app/firebase_options.dart';
 import 'package:tenant_management_app/theme/app_theme.dart';
 import 'package:tenant_management_app/services/auth_service.dart';
 import 'package:tenant_management_app/services/app_state.dart';
+import 'package:tenant_management_app/services/env_config.dart';
 import 'package:tenant_management_app/views/auth/login_screen.dart';
 import 'package:tenant_management_app/views/tenant_shell.dart';
 import 'package:tenant_management_app/views/admin/admin_main_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EnvConfig.load();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const LumiereStayApp());
 }

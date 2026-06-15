@@ -83,10 +83,25 @@ flutter pub get
 
 ## Cấu hình Firebase
 
-Dự án đã có các file cấu hình Firebase trong repository, bao gồm:
+Dự án không commit trực tiếp Firebase API key. Hãy tạo file `.env` từ file mẫu:
 
-- `lib/firebase_options.dart`
+```bash
+cp .env.example .env
+```
+
+Sau đó điền các biến Firebase tương ứng:
+
+- `FIREBASE_WEB_*`
+- `FIREBASE_ANDROID_*`
+- `FIREBASE_IOS_*`
+
+File `.env` được khai báo trong `pubspec.yaml` để Flutter bundle khi chạy local, nhưng đã nằm trong `.gitignore` nên không bị commit.
+
+Các file cấu hình native cũng không nên commit:
+
 - `android/app/google-services.json`
+- `ios/Runner/GoogleService-Info.plist`
+- `macos/Runner/GoogleService-Info.plist`
 
 Nếu tạo Firebase project mới, hãy chạy lại FlutterFire CLI và cập nhật cấu hình tương ứng:
 
@@ -94,7 +109,7 @@ Nếu tạo Firebase project mới, hãy chạy lại FlutterFire CLI và cập 
 flutterfire configure
 ```
 
-Với Google Sign-In trên Android, cần cấu hình SHA-1/SHA-256 trong Firebase Console, sau đó tải lại `google-services.json`.
+Với Google Sign-In trên Android, cần cấu hình SHA-1/SHA-256 trong Firebase Console, sau đó tải lại `google-services.json` vào `android/app/` trên máy local.
 
 ## Chạy ứng dụng
 
